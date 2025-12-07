@@ -180,9 +180,6 @@ document.addEventListener('DOMContentLoaded', () => {
   
   console.log('[LLM Copier] Popup DOMContentLoaded');
   const statusEl = document.getElementById('status');
-  const domBtn = document.getElementById('dom-btn');  // Full DOM Copy Button
-  const mdBtn = document.getElementById('copy-btn');  // Markdown Copy Button
-  const pdfBtn = document.getElementById('pdf-btn');  // PDF Export Button
 
   // Auto-attach handler to all copy buttons
   document.querySelectorAll('.copy-btn').forEach(button => {

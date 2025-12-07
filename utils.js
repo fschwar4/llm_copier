@@ -5,6 +5,7 @@
 //           toTitleCase('karl.smith') => "Karl Smith"
 //           toTitleCase('john_doe') => "John Doe"
 export function toTitleCase(str) {
+  if (!str) return '';
   return str
     .toLowerCase()
     .split(/[._-\s]/)
