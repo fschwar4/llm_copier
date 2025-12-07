@@ -56,6 +56,9 @@ document.addEventListener('DOMContentLoaded', () => {
           const url = window.location.href;
           const today = new Date().toISOString().split('T')[0];
           let pageTitle = document.title || 'Chat Export';
+          
+          // FIX: Initialize company variable
+          let company = 'Unknown AI'; 
           let modelName = 'LLM';
           let userName = 'User';
           let platform = 'unknown';
@@ -63,12 +66,15 @@ document.addEventListener('DOMContentLoaded', () => {
           // Improved Model Detection based on Domain
           if (url.includes('chatgpt.com')) {
             platform = 'chatgpt';
+            company = 'OpenAI'; // FIX: Assign company
             modelName = 'ChatGPT';
           } else if (url.includes('claude.ai')) {
             platform = 'claude';
+            company = 'Anthropic'; // FIX: Assign company
             modelName = 'Claude';
           } else if (url.includes('gemini.google.com')) {
             platform = 'gemini';
+            company = 'Google'; // FIX: Assign company
             modelName = 'Gemini';
           }
           
@@ -114,7 +120,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         const idx = parent && parent.tagName === 'OL' ? '1.' : '-';
                         return `${idx} ${content.trim()}\n`;
                     case 'table':
-                        // Basic table parsing
                         const rows = Array.from(node.querySelectorAll('tr'));
                         if (!rows.length) return '';
                         let tableMd = '\n\n';
@@ -161,7 +166,6 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           
           // --- B. HTML EXTRACTION (For PDF) ---
-          // Returns an ARRAY of message chunks instead of one big HTML string
           else {
               const messageChunks = [];
               let selectorString = '';
@@ -177,21 +181,18 @@ document.addEventListener('DOMContentLoaded', () => {
               if (selectorString) {
                   const elements = document.querySelectorAll(selectorString);
                   elements.forEach(el => {
-                      // 1. Clone the node to avoid modifying the live page
                       const clone = el.cloneNode(true);
 
-                      // 2. Sanitation: Remove buttons, icons, avatars to save space and errors
                       const junkSelectors = [
                           'button', 'svg', 'img', 
                           '[role="button"]', 
                           '.sr-only', 
-                          'div.flex-shrink-0' // Avatars often live here
+                          'div.flex-shrink-0'
                       ];
                       junkSelectors.forEach(sel => {
                           clone.querySelectorAll(sel).forEach(junk => junk.remove());
                       });
                       
-                      // 3. Labeling
                       let role = 'Unknown';
                       if(platform === 'chatgpt') {
                           role = clone.querySelector('[data-message-author-role="user"]') ? 'User' : 'ChatGPT';
@@ -201,7 +202,6 @@ document.addEventListener('DOMContentLoaded', () => {
                           role = clone.tagName === 'USER-QUERY' ? 'User' : 'Gemini';
                       }
 
-                      // 4. Create HTML for this single message
                       const wrapper = document.createElement('div');
                       wrapper.style.marginBottom = '20px';
                       wrapper.style.borderBottom = '1px solid #ccc';
@@ -214,7 +214,6 @@ document.addEventListener('DOMContentLoaded', () => {
                       wrapper.appendChild(header);
                       wrapper.appendChild(clone);
                       
-                      // Push each message as a separate chunk
                       messageChunks.push({
                           html: wrapper.outerHTML,
                           role: role
@@ -227,6 +226,9 @@ document.addEventListener('DOMContentLoaded', () => {
                   meta: {
                     title: pageTitle, 
                     date: today, 
+                    // FIX: Ensure company and model are returned for the PDF handler
+                    company: company,
+                    model: modelName,
                     author: `${company} - ${modelName} & ${userName}` 
                   }
               };
