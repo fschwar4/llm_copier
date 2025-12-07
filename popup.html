@@ -37,17 +37,31 @@
       }
     </style>
 
-    <script src="html2pdf.bundle.min.js"></script>
-    <script src="popup.js" defer></script>
+    <script src="pdfmake.min.js"></script>
+    <script src="vfs_fonts.js"></script>
+    <script type="module" src="popup.js" defer></script>
+
   </head>
   <body>
     <h3>LLM Chat Exporter</h3>
     <p>Export the current chat session to Markdown or PDF.</p>
     
-    <button id="copy-btn">Copy Markdown</button>
-    <button id="pdf-btn">Save as PDF</button>
-    <button id="dom-btn">Copy Full DOM</button>
-    
+    <button class="copy-btn" 
+        id="dom-btn"
+        data-name="DOM">
+      Copy DOM
+    </button>
+    <button class="copy-btn" 
+        id="md-btn"
+        data-name="Markdown">
+      Copy Markdown
+    </button>
+    <button class="save-btn" 
+        id="pdf-btn"
+        data-name="PDF">
+      Save as PDF
+    </button>
+
     <div id="status"></div>
     
     <div id="pdf-hidden-container"></div>
