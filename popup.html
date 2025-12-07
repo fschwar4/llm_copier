@@ -22,6 +22,8 @@
       button:hover { background-color: #0056b3; }
       #pdf-btn { background-color: #28a745; }
       #pdf-btn:hover { background-color: #1e7e34; }
+      #dom-btn { background-color: #6f42c1; } /* Purple to distinguish */
+      #dom-btn:hover { background-color: #5a32a3; }
       #status { margin-top: 10px; font-size: 12px; text-align: center; min-height: 1.2em; }
       
       /* Hidden container for PDF generation - positioned off-screen but not hidden */
@@ -35,7 +37,6 @@
       }
     </style>
 
-    <!-- Only local scripts - no external CDN due to CSP restrictions -->
     <script src="html2pdf.bundle.min.js"></script>
     <script src="popup.js" defer></script>
   </head>
@@ -45,8 +46,7 @@
     
     <button id="copy-btn">Copy Markdown</button>
     <button id="pdf-btn">Save as PDF</button>
-    <!-- New button to copy the complete page DOM to the clipboard -->
-    <button id="copy-dom-btn">Copy Full DOM</button>
+    <button id="dom-btn">Copy Full DOM</button>
     
     <div id="status"></div>
     
