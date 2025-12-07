@@ -4,16 +4,11 @@
 
 ## Features
 
-<div style="display:flex;flex-direction:column;gap:12px;align-items:center">
-  <a href="./extension_image.png" target="_blank" rel="noopener">
-    <img src="./extension_image.png" alt="Extension Screenshot" style="width:240px;height:auto;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,0.12)"/>
+<p align="center">
+  <a href="./extension_popup.png" target="_blank" rel="noopener noreferrer">
+    <img src="./extension_popup.png" alt="Extension popup screenshot" width="240" />
   </a>
-  <a href="./extension_page.png" target="_blank" rel="noopener">
-    <img src="./extension_page.png" alt="Popup Screenshot" style="width:240px;height:auto;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,0.12)"/>
-  </a>
-</div>
-
-<small>Compact previews — click an image to open the full-size version.</small>
+</p>
 
 - **One‑click export to Markdown.** Convert the currently open chat into a structured Markdown document with a [Quarto](https://quarto.org/) YAML header. The exported text is copied directly to your clipboard.
 
@@ -25,13 +20,12 @@
 
 - **Open source.** Open source license (AGPL-3.0) You can inspect the code or build it yourself from the [GitHub repository](https://github.com/fschwar4/llm_copier).
 
-<div role="note" style="background: #f0fff7ff;border-left:4px solid #1fd24bff;padding:12px;border-radius:6px;margin:1em 0">
-  <strong>100&nbsp;% client‑side.</strong></br>
-  All data extraction and conversion happens in the browser. There are no external requests, no telemetry and no tracking.
-</div>
+> **🔒 100% client‑side.**  
+> All data extraction and conversion happen in your browser — no requests to external servers, no telemetry, and no tracking.
 
 ## Roadmap
 
+- [ ] Restructure directory layout (images)
 - [ ] Add support for additional LLM web apps
 - [ ] Decision about Emoji and special character support
   - [ ] would increase file size significantly
