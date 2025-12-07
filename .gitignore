@@ -1,0 +1,25 @@
+# Python artifacts
+pycache/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Shiny/Quarto generated files
+*_files/
+*.pdf
+
+# macOS system files
+.DS_Store
+
+# IDE settings 
+.vscode/
+.idea/
+
+# Distribution / Packaging
+dist/
+*.egg-info/
+*.egg

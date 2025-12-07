@@ -6,6 +6,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const statusEl = document.getElementById('status');
   const copyBtn = document.getElementById('copy-btn');
   const pdfBtn = document.getElementById('pdf-btn');
+  // Button for copying the full DOM of the current tab
+  const copyDomBtn = document.getElementById('copy-dom-btn');
 
   // --- 1. CORE VALIDATION ---
 
@@ -55,13 +57,34 @@ document.addEventListener('DOMContentLoaded', () => {
           const url = window.location.href;
           const today = new Date().toISOString().split('T')[0];
           let pageTitle = document.title || 'Chat Export';
+          // Determine the platform, model and company from the current domain.  The
+          // company information is derived solely from the domain and is not
+          // transmitted outside of the client.  This provides a better default
+          // for the YAML header and PDF metadata than the generic "LLM"
+          // placeholder.
           let modelName = 'LLM';
           let userName = 'User';
           let platform = 'unknown';
-
-          if (url.includes('chatgpt.com')) platform = 'chatgpt';
-          else if (url.includes('claude.ai')) platform = 'claude';
-          else if (url.includes('gemini.google.com')) platform = 'gemini';
+          let company = 'Unknown';
+          try {
+            const urlObj = new URL(url);
+            const domain = urlObj.hostname;
+            if (domain.endsWith('chatgpt.com')) {
+              platform = 'chatgpt';
+              modelName = 'ChatGPT';
+              company = 'OpenAI';
+            } else if (domain.endsWith('claude.ai')) {
+              platform = 'claude';
+              modelName = 'Claude';
+              company = 'Anthropic';
+            } else if (domain.endsWith('gemini.google.com')) {
+              platform = 'gemini';
+              modelName = 'Gemini';
+              company = 'Google';
+            }
+          } catch (e) {
+            // fallback: leave platform/model/company as defaults
+          }
           
           // --- A. MARKDOWN EXTRACTION (For Copy to Clipboard) ---
           if (requestedFormat === 'markdown') {
@@ -146,6 +169,8 @@ document.addEventListener('DOMContentLoaded', () => {
               `title: "${pageTitle.replace(/"/g, '\\"')}"\n` +
               `date: "${today}"\n` +
               `author: "${modelName} & ${userName}"\n` +
+              `model: "${modelName}"\n` +
+              `company: "${company}"\n` +
               'format:\n  pdf:\n    toc: true\n    number-sections: true\n    mainfont: "Avenir"\n---\n\n';
 
             return { markdown: yaml + md };
@@ -215,7 +240,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
               return {
                   chunks: messageChunks,
-                  meta: { title: pageTitle, date: today, author: `${modelName} & ${userName}` }
+                  meta: {
+                      title: pageTitle,
+                      date: today,
+                      author: `${modelName} & ${userName}`,
+                      model: modelName,
+                      company: company
+                  }
               };
           }
         },
@@ -535,9 +566,11 @@ document.addEventListener('DOMContentLoaded', () => {
         statusEl.textContent = 'Extracting content...';
         const data = await extractData(tab.id, 'html');
 
-        const filename = (data.meta.title || 'chat').replace(/[^a-z0-9]/gi, '_').substring(0, 50) + '.pdf';
+        const filename = (data.meta.title || 'chat')
+          .replace(/[^a-z0-9]/gi, '_')
+          .substring(0, 50) + '.pdf';
         const chunks = data.chunks || [];
-        
+
         console.log(`[LLM Copier] Extracted ${chunks.length} message chunks`);
 
         if (chunks.length === 0) {
@@ -548,13 +581,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         statusEl.textContent = 'Generating PDF...';
 
+        // Build a descriptive export author string that includes the company and model
+        const exporter = `${data.meta.model} (${data.meta.company}) & User`;
+
         // Use chunked approach for longer conversations (>10 messages)
         if (chunks.length > 10) {
           await generatePdfChunked(
             chunks,
             data.meta.title,
             data.meta.date,
-            data.meta.author,
+            exporter,
             filename
           );
         } else {
@@ -562,7 +598,7 @@ document.addEventListener('DOMContentLoaded', () => {
             chunks,
             data.meta.title,
             data.meta.date,
-            data.meta.author,
+            exporter,
             filename
           );
         }
@@ -576,6 +612,46 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           statusEl.textContent = 'PDF Error: ' + err.message;
         }
+      }
+    });
+  }
+
+  // Handler for copying the full DOM of the active tab. This leverages the
+  // scripting API to retrieve the entire serialized HTML of the page and
+  // writes it to the clipboard from the popup context.  The copy will only
+  // succeed on supported LLM URLs because the same validation as
+  // getActiveLLMTab() applies.  If you need to copy the DOM from other
+  // websites, adjust the validation logic accordingly.
+  if (copyDomBtn) {
+    copyDomBtn.addEventListener('click', async () => {
+      console.log('[LLM Copier] Copy DOM button clicked');
+      try {
+        const tab = await getActiveLLMTab();
+        if (!tab) return;
+        statusEl.style.color = '';
+        statusEl.textContent = 'Extracting page DOM...';
+
+        // Execute script in the page to obtain outerHTML of the entire document
+        const [{ result: domString }] = await browser.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: () => document.documentElement.outerHTML
+        });
+
+        // Focus popup and write to clipboard
+        window.focus();
+        try {
+          await navigator.clipboard.writeText(domString);
+          statusEl.style.color = 'green';
+          statusEl.textContent = 'DOM Copied!';
+        } catch (err) {
+          console.error('[LLM Copier] DOM Clipboard write failed:', err);
+          statusEl.style.color = 'orange';
+          statusEl.textContent = 'Copy failed.';
+        }
+      } catch (err) {
+        console.error('[LLM Copier] Copy DOM Handler Error:', err);
+        statusEl.style.color = 'red';
+        statusEl.textContent = 'Error: ' + err.message;
       }
     });
   }
