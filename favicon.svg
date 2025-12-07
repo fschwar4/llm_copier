@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4a90e2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#003366;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Document Background -->
+  <rect x="12" y="8" width="40" height="48" rx="4" ry="4" fill="url(#grad)" />
+  
+  <!-- Folded Corner -->
+  <path d="M40 8 L52 20 L52 8 Z" fill="#ffffff" opacity="0.3"/>
+  <path d="M40 8 L40 20 L52 20" fill="none" stroke="#ffffff" stroke-width="1"/>
+
+  <!-- M (Markdown) -->
+  <path d="M20 35 L20 25 L25 30 L30 25 L30 35"
+        stroke="#ffffff" stroke-width="2.5" fill="none"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Arrow -->
+  <path d="M25 42 L32 48 L39 42" stroke="#ffffff" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M32 38 L32 48" stroke="#ffffff" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+
+</svg>

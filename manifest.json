@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "LLM Markdown Copier",
+  "version": "1.0",
+  "description": "Copies the parsed markdown version of an LLM chat to the clipboard.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "llm-markdown-copier@fschwar4",
+      "strict_min_version": "109.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
+    }
+  },
+  "icons": {
+    "128": "favicon.svg"
+  },
+  "permissions": [
+    "clipboardWrite",
+    "scripting",
+    "downloads",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "*://chatgpt.com/*",
+    "*://gemini.google.com/*",
+    "*://claude.ai/*"
+  ],
+  "action": {
+    "default_title": "Copy LLM Markdown",
+    "default_icon": {
+      "128": "favicon.svg"
+    },
+    "default_popup": "popup.html"
+  }
+}
