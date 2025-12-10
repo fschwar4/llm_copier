@@ -25,6 +25,7 @@
 
 ## Roadmap
 
+- [ ] Fix: Code indentation in PDF output
 - [ ] Restructure directory layout (images)
 - [ ] Add support for additional LLM web apps
 - [ ] Decision about Emoji and special character support
