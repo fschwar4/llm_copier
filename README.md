@@ -35,8 +35,9 @@ PDF export includes syntax highlighting for the following languages:
 **Web Technologies:** CSS, GraphQL, HTML/XML, HTTP, JSON, Less, SCSS, PHP Template, WASM  
 **Shell/Scripting:** Bash, PowerShell, Shell  
 **Database:** PgSQL, SQL  
-**Configuration/Markup:** AsciiDoc, Dockerfile, INI, LaTeX, Makefile, Markdown, YAML  
-**Other:** Diff, Plaintext, Python REPL
+**Configuration/Markup:** AsciiDoc, Dockerfile, INI, LaTeX, Makefile, Markdown, YAML, CMake, Oxygen    
+**Assembly**: armasm, avrasm, llvm, mipsasm, smali, x86asm  
+**Other:** Diff, Plaintext, Python REPL, Julia REPL
 
 
 ## Roadmap
