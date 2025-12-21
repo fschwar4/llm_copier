@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LLM Markdown Copier",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "description": "Copying LLM chat conversations as clean PDFs or Quarto Markdown. Currently supporting ChatGPT, Claude, Gemini.",
   "homepage_url": "https://github.com/fschwar4/llm_copier",
   "browser_specific_settings": {

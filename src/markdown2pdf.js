@@ -121,9 +121,10 @@ const SYNTAX_COLORS = {
 function hljsToPdfmake(highlightedHtml) {
   const result = [];
   
-  // Create a temporary element to parse the HTML
-  const temp = document.createElement('div');
-  temp.innerHTML = highlightedHtml;
+  // Use DOMParser instead of innerHTML for security (avoids Firefox addon warning)
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(`<div>${highlightedHtml}</div>`, 'text/html');
+  const temp = doc.body.firstChild;
   
   console.log('[PDF Generator] hljsToPdfmake parsing HTML, childNodes:', temp.childNodes.length);
   
