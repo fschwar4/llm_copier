@@ -11,6 +11,7 @@ import {
   parseClaude,
   getModelNameGemini,
   getUserNameGemini,
+  getChatTitleGemini,
   parseGemini
 } from './extractors.js';
 
@@ -76,7 +77,6 @@ async function extractMDData(tabId) {
     
     const today = new Date().toISOString().split('T')[0];
     let pageTitle = title || 'Chat Export';
-    const safeTitle = pageTitle.replace(/"/g, '\\"');
     
     let company = 'Unknown AI'; 
     let modelName = 'LLM';
@@ -97,9 +97,18 @@ async function extractMDData(tabId) {
       company = 'Google';
       modelName = getModelNameGemini(doc);
       userName = toTitleCase(getUserNameGemini(doc));
+      
+      // Extract actual chat title for Gemini (document.title is generic)
+      const geminiChatTitle = getChatTitleGemini(doc);
+      if (geminiChatTitle) {
+        pageTitle = geminiChatTitle;
+      }
     } else {
       console.warn('[LLM Copier] Unknown LLM platform for URL:', url);
     }
+
+    // Compute safeTitle after company detection (Gemini may have updated pageTitle)
+    const safeTitle = pageTitle.replace(/"/g, '\\"');
 
     console.log(`[LLM Copier] Detected Company: ${company}, Model: ${modelName}, User: ${userName}`);
     

@@ -242,6 +242,61 @@ export function getModelNameGemini(input) {
   }
 }
 
+/**
+ * Extract chat title from Gemini page.
+ * Gemini uses the first user query as the chat title.
+ * @param {Element|Document|string} input - DOM element or HTML string
+ * @returns {string} Chat title or empty string if not found
+ */
+export function getChatTitleGemini(input) {
+  try {
+    let doc;
+    if (input instanceof Document) {
+      doc = input;
+    } else if (input instanceof Element) {
+      doc = input.ownerDocument || input;
+    } else {
+      // Parse HTML string
+      const parser = new DOMParser();
+      doc = parser.parseFromString(input, 'text/html');
+    }
+    
+    // Try to find the first user query in the conversation
+    const conversations = doc.querySelectorAll('.conversation-container');
+    if (conversations.length > 0) {
+      const firstTurn = conversations[0];
+      const userQuery = firstTurn.querySelector('user-query, query-text, query-text-line');
+      if (userQuery) {
+        const queryDiv = userQuery.querySelector('.query-text, .query-text-line');
+        const queryText = queryDiv ? queryDiv.textContent.trim() : userQuery.textContent.trim();
+        if (queryText) {
+          // Truncate long titles and clean up
+          let title = queryText.split(/(?<=[.!?])\s+/)[0] || queryText;
+          if (title.length > 100) {
+            title = title.substring(0, 100) + '...';
+          }
+          return title.replace(/\n/g, ' ').trim();
+        }
+      }
+    }
+    
+    // Fallback: try to find any query text element
+    const queryText = doc.querySelector('.query-text, .query-text-line');
+    if (queryText) {
+      let title = queryText.textContent.trim();
+      if (title.length > 100) {
+        title = title.substring(0, 100) + '...';
+      }
+      return title.replace(/\n/g, ' ').trim();
+    }
+    
+    return '';
+  } catch (error) {
+    console.error('Error extracting Gemini chat title:', error);
+    return '';
+  }
+}
+
 
 // --- HELPER FOR CONTENT EXTRACTIONS ---
 
