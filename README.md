@@ -25,11 +25,14 @@
 
 ## Roadmap
 
-- [ ] Fix: Code indentation in PDF output
+- [x] Fix: Code indentation in PDF output
 - [ ] Restructure directory layout (images)
 - [ ] Add support for additional LLM web apps
 - [ ] Decision about Emoji and special character support
-  - [ ] would increase file size significantly
+  - [ ] would increase file size significantly (as embedded fonts are needed)
+- [ ] Find solution to export multiple conversation paths at once (re-iterated questions / branches)
+  - [ ] Think about export of artifacts (images, files) as well (one zip file?)
+- [ ] Add: Style Setting Page for PDF output (font size, margin size, color scheme)
 
 ## Contributing
 
