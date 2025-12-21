@@ -102,6 +102,7 @@ function parseMarkdownToPdfContent(md) {
   // State variables
   let inCodeBlock = false;
   let codeBlockContent = '';
+  let codeBlockMargin = 0; // Stores indentation for the current block
   
   let inList = false;
   let listType = null; // 'ul' or 'ol'
@@ -133,24 +134,48 @@ function parseMarkdownToPdfContent(md) {
     if (trimmed.startsWith('```')) {
       flushList(); 
       if (inCodeBlock) {
+        // END OF CODE BLOCK
+        // Expand 2-space indentation to 4-space for better readability
+        const expandedCode = codeBlockContent
+          .replace(/\n$/, '')
+          .split('\n')
+          .map(line => {
+            const match = line.match(/^(\s*)(.*)/);
+            const leadingSpaces = match[1];
+            const rest = match[2];
+            // Double each leading space (2-space -> 4-space indentation)
+            return leadingSpaces.replace(/ /g, '  ') + rest;
+          })
+          .join('\n');
+        
         content.push({
           table: {
             widths: ['100%'],
             body: [[{ 
               // Preserve exact content in code blocks
-              text: codeBlockContent.replace(/\n$/, ''), 
+              text: expandedCode, 
               style: 'code_block',
               border: [false, false, false, false], 
-              fillColor: '#f4f4f4' 
+              fillColor: '#f4f4f4',
+              preserveLeadingSpaces: true  // Fix: preserve indentation in code blocks
             }]]
           },
           layout: 'noBorders',
-          margin: [0, 5, 0, 10]
+          // Apply the captured margin to the entire block
+          margin: [codeBlockMargin, 5, 0, 10]
         });
         codeBlockContent = '';
         inCodeBlock = false;
+        codeBlockMargin = 0;
       } else {
+        // START OF CODE BLOCK
         inCodeBlock = true;
+        
+        // Capture indentation of the opening fence to align strictly with lists
+        const indentMatch = line.match(/^\s*/);
+        const indentSize = indentMatch ? indentMatch[0].length : 0;
+        // 4 units per space aligns with list indentation logic
+        codeBlockMargin = indentSize * 4; 
       }
       return;
     }

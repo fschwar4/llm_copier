@@ -379,14 +379,16 @@ export function nodeToMarkdown(element, stripTags = ['button', 'img', 'svg']) {
     children.forEach(child => {
       let childMd = nodeToMarkdown(child, stripTags);
       
-      // If the child is a sub-list, we must indent its output to preserve structure
+      // FIX: Indent nested lists AND code blocks (pre) to align with list item
       if (child.nodeType === Node.ELEMENT_NODE && 
-         (child.tagName.toLowerCase() === 'ul' || child.tagName.toLowerCase() === 'ol')) {
+         (child.tagName.toLowerCase() === 'ul' || 
+          child.tagName.toLowerCase() === 'ol' || 
+          child.tagName.toLowerCase() === 'pre')) { // <--- Added 'pre' check
          
-         // Ensure newline before nested list
+         // Ensure newline before nested content
          if (!itemText.endsWith('\n')) itemText += '\n';
          
-         // Indent every line of the sub-list by 4 spaces
+         // Indent every line by 4 spaces
          childMd = childMd.split('\n')
            .map(line => line ? '    ' + line : line)
            .join('\n');
