@@ -5,20 +5,25 @@
 ## Features
 
 <p align="center">
-  <a href="./extension_popup.png" target="_blank" rel="noopener noreferrer">
-    <img src="./extension_popup.png" alt="Extension popup screenshot" width="240" />
+  <a href="./extension_popup.png" target="_blank" rel="noopener noreferrer" style="display:inline-block;vertical-align:middle;">
+    <img src="./extension_popup.png" alt="Extension popup screenshot" width="240" style="vertical-align:middle;" />
+  </a>
+  &nbsp;&nbsp;
+  <a href="./settings_page.png" target="_blank" rel="noopener noreferrer" style="display:inline-block;vertical-align:middle;">
+    <img src="./settings_page.png" alt="Settings page screenshot" width="240" style="vertical-align:middle;" />
   </a>
 </p>
 
 - **One‑click export to Markdown.** Convert the currently open chat into a structured Markdown document with a [Quarto](https://quarto.org/) YAML header. The exported text is copied directly to your clipboard.
 
+- **Full HTML DOM capture.** Need the raw page source for debugging or archival purposes? A third button allows you to copy the complete HTML document to your clipboard.
+
 - **High‑quality PDF downloads.** Generate a PDF from your conversation using `pdfmake`, a client-side PDF generation library. **No Canvas Approach!** Leading to high quality pdf generation even for long conversations. The PDF is directly build based on the extracted Markdown content.
 
-- **Full DOM capture.** Need the raw page source for debugging or archival purposes? A third button allows you to copy the complete HTML document to your clipboard.
+- **PDF Layout Customization.** You can customize the PDF output layout (font size, margin size, color scheme) in the extension settings page.
 
 - **Syntax Highlighting for code blocks.** The PDF export includes syntax highlighting for code snippets using [`highlight.js`](https://highlightjs.org/). See below for a full list of supported languages.
-
-- **Minimal permissions.** The extension uses the `activeTab` permission to execute scripts in the currently active tab only in response to a user action (clicking the extension button), and the `clipboardWrite` permission to copy exported content to the clipboard. It does not read from your clipboard or access unrelated browsing data. **Host permissions are restricted to the ChatGPT, Claude, and Gemini domains only.**
+- **Minimal permissions.** The extension uses the `activeTab` permission to execute scripts in the currently active tab only in response to a user action (clicking the extension button), the `clipboardWrite` permission to copy exported content to the clipboard, and the `storage` permission to save custom settings. It does not read from your clipboard or access unrelated browsing data. **Host permissions are restricted to the ChatGPT, Claude, and Gemini domains only.**
 
 - **Open source.** Open source license (AGPL-3.0) You can inspect the code or build it yourself from the [GitHub repository](https://github.com/fschwar4/llm_copier).
 
@@ -49,7 +54,7 @@ PDF export includes syntax highlighting for the following languages:
   - [ ] would increase file size significantly (as embedded fonts are needed)
 - [ ] Find solution to export multiple conversation paths at once (re-iterated questions / branches)
   - [ ] Think about export of artifacts (images, files) as well (one zip file?)
-- [ ] Add: Style Setting Page for PDF output (font size, margin size, color scheme)
+- [x] Add: Style Setting Page for PDF output (font size, margin size, color scheme)
 
 ## Contributing
 

@@ -10,6 +10,52 @@ if (typeof hljs !== 'undefined') {
 }
 
 /**
+ * Default PDF settings - must match settings.js
+ */
+const DEFAULT_SETTINGS = {
+  // Page layout
+  pageSize: 'A4',
+  pageMargins: 40,
+  
+  // Font sizes
+  fontTitle: 26,
+  fontH1: 22,
+  fontH2: 18,
+  fontH3: 15,
+  fontBody: 11,
+  fontCode: 10,
+  
+  // Colors
+  colorTitle: '#2c3e50',
+  colorH1: '#2c3e50',
+  colorH2: '#34495e',
+  colorBody: '#212121',
+  colorLink: '#1a0dab',
+  
+  // Code blocks
+  codeBg: '#f8f8f8',
+  syntaxHighlight: true,
+  
+  // Table of contents
+  tocEnabled: true
+};
+
+/**
+ * Load PDF settings from browser storage
+ */
+async function getSettings() {
+  try {
+    const result = await browser.storage.local.get('pdfSettings');
+    const settings = { ...DEFAULT_SETTINGS, ...result.pdfSettings };
+    console.log('[PDF Generator] Loaded settings:', settings);
+    return settings;
+  } catch (e) {
+    console.warn('[PDF Generator] Failed to load settings, using defaults:', e);
+    return DEFAULT_SETTINGS;
+  }
+}
+
+/**
  * Syntax highlighting color scheme (based on popular IDE themes)
  */
 const SYNTAX_COLORS = {
@@ -276,8 +322,10 @@ function extractMetadata(md) {
 
 /**
  * Parses Markdown text into pdfmake content objects.
+ * @param {string} md - Markdown content
+ * @param {object} settings - PDF settings from storage
  */
-function parseMarkdownToPdfContent(md) {
+function parseMarkdownToPdfContent(md, settings = DEFAULT_SETTINGS) {
   const content = [];
   const lines = md.split('\n');
   
@@ -331,18 +379,24 @@ function parseMarkdownToPdfContent(md) {
           })
           .join('\n');
         
-        // Apply syntax highlighting
-        const highlightedContent = highlightCode(expandedCode, codeBlockLanguage);
+        // Apply syntax highlighting if enabled in settings
+        let codeContent;
+        if (settings.syntaxHighlight) {
+          codeContent = highlightCode(expandedCode, codeBlockLanguage);
+        } else {
+          // Plain text without highlighting
+          codeContent = [{ text: expandedCode, color: '#333333' }];
+        }
         
         content.push({
           table: {
             widths: ['100%'],
             body: [[{ 
-              // Use highlighted text array instead of plain text
-              text: highlightedContent, 
+              // Use highlighted text array or plain text
+              text: codeContent, 
               style: 'code_block',
               border: [false, false, false, false], 
-              fillColor: '#f8f8f8',
+              fillColor: settings.codeBg || '#f8f8f8',
               preserveLeadingSpaces: true
             }]]
           },
@@ -478,10 +532,14 @@ function parseMarkdownToPdfContent(md) {
 }
 
 /**
- * Generates and downloads a PDF.
+ * Generates and downloads a PDF with customizable settings.
  */
-export function markdownToPdf(markdown, filename = 'chat-export.pdf') {
+export async function markdownToPdf(markdown, filename = 'chat-export.pdf') {
   console.log('[PDF Generator] Starting conversion...');
+
+  // Load settings from storage
+  const settings = await getSettings();
+  console.log('[PDF Generator] Using settings:', settings);
 
   const { title, author, date, cleanMd } = extractMetadata(markdown);
 
@@ -500,45 +558,56 @@ export function markdownToPdf(markdown, filename = 'chat-export.pdf') {
     }
   };
 
-  const docDefinition = {
-    content: [
-      // --- TITLE PAGE ---
-      { text: cleanText(title), style: 'reportTitle', margin: [0, 60, 0, 10], alignment: 'center' },
-      { text: cleanText(author), style: 'reportAuthor', alignment: 'center', margin: [0, 0, 0, 5] },
-      { text: cleanText(date), style: 'reportDate', alignment: 'center', margin: [0, 0, 0, 40] },
-      
-      // --- TABLE OF CONTENTS ---
+  // Build content array based on TOC setting
+  const contentArray = [
+    // --- TITLE PAGE ---
+    { text: cleanText(title), style: 'reportTitle', margin: [0, 60, 0, 10], alignment: 'center' },
+    { text: cleanText(author), style: 'reportAuthor', alignment: 'center', margin: [0, 0, 0, 5] },
+    { text: cleanText(date), style: 'reportDate', alignment: 'center', margin: [0, 0, 0, 40] }
+  ];
+
+  // Add TOC if enabled
+  if (settings.tocEnabled) {
+    contentArray.push(
       { text: 'Table of Contents', style: 'h3', margin: [0, 20, 0, 10] },
       { 
         toc: {
           title: { text: '' },
           numberStyle: { bold: true } 
         } 
-      },
-      
-      { text: '', pageBreak: 'after' },
+      }
+    );
+  }
 
-      // --- MAIN CONTENT ---
-      ...parseMarkdownToPdfContent(cleanMd)
-    ],
+  // Page break before main content
+  contentArray.push({ text: '', pageBreak: 'after' });
+
+  // Add main content
+  contentArray.push(...parseMarkdownToPdfContent(cleanMd, settings));
+
+  const docDefinition = {
+    pageSize: settings.pageSize || 'A4',
+    pageMargins: [settings.pageMargins, settings.pageMargins, settings.pageMargins, settings.pageMargins],
+    
+    content: contentArray,
 
     styles: {
-      reportTitle: { fontSize: 26, bold: true, color: '#2c3e50' },
+      reportTitle: { fontSize: settings.fontTitle, bold: true, color: settings.colorTitle },
       reportAuthor: { fontSize: 14, color: '#555555' },
       reportDate: { fontSize: 12, italics: true, color: '#7f8c8d' },
       toc_header: { fontSize: 12, bold: false, margin: [0, 5, 0, 0] },
-      header: { fontSize: 22, bold: true, color: '#2c3e50', margin: [0, 15, 0, 10] },
-      subheader: { fontSize: 18, bold: true, color: '#34495e', margin: [0, 12, 0, 8] },
-      h3: { fontSize: 15, bold: true, color: '#2c3e50', margin: [0, 10, 0, 5] },
+      header: { fontSize: settings.fontH1, bold: true, color: settings.colorH1, margin: [0, 15, 0, 10] },
+      subheader: { fontSize: settings.fontH2, bold: true, color: settings.colorH2, margin: [0, 12, 0, 8] },
+      h3: { fontSize: settings.fontH3, bold: true, color: settings.colorH1, margin: [0, 10, 0, 5] },
       h4: { fontSize: 13, bold: true, color: '#444444', margin: [0, 8, 0, 5] },
       h5: { fontSize: 12, bold: true, italics: true, color: '#555555', margin: [0, 5, 0, 5] },
       h6: { fontSize: 11, bold: true, color: '#7f8c8d', margin: [0, 5, 0, 5] },
       h7: { fontSize: 10, bold: true, italics: true, color: '#95a5a6', margin: [0, 5, 0, 5] },
-      body: { fontSize: 11, color: '#212121', margin: [0, 0, 0, 6], lineHeight: 1.4 },
-      code_block: { font: 'Courier', fontSize: 10, color: '#333333', margin: [5, 5, 5, 5] },
-      inline_code: { font: 'Courier', fontSize: 10, color: '#d63384', background: '#f8f9fa' },
-      quote: { fontSize: 11, italics: true, color: '#555555', margin: [20, 5, 0, 10], background: '#fafafa' },
-      link: { color: '#1a0dab', decoration: 'underline' }
+      body: { fontSize: settings.fontBody, color: settings.colorBody, margin: [0, 0, 0, 6], lineHeight: 1.4 },
+      code_block: { font: 'Courier', fontSize: settings.fontCode, color: '#333333', margin: [5, 5, 5, 5] },
+      inline_code: { font: 'Courier', fontSize: settings.fontCode, color: '#d63384', background: '#f8f9fa' },
+      quote: { fontSize: settings.fontBody, italics: true, color: '#555555', margin: [20, 5, 0, 10], background: '#fafafa' },
+      link: { color: settings.colorLink, decoration: 'underline' }
     },
     defaultStyle: {
       font: 'Roboto'
