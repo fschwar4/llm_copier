@@ -1,5 +1,187 @@
 import './pdfmake.min.js';
 import './vfs_fonts.js';
+import './highlight.min.js';
+
+// Debug: Check if hljs loaded
+console.log('[PDF Generator] highlight.js loaded:', typeof hljs !== 'undefined');
+if (typeof hljs !== 'undefined') {
+  console.log('[PDF Generator] hljs version:', hljs.versionString || 'unknown');
+  console.log('[PDF Generator] Available languages:', hljs.listLanguages ? hljs.listLanguages().length : 'listLanguages not available');
+}
+
+/**
+ * Syntax highlighting color scheme (based on popular IDE themes)
+ */
+const SYNTAX_COLORS = {
+  // Keywords and control flow
+  keyword: '#0033B3',      // blue - if, for, function, return, etc.
+  built_in: '#7A3E9D',     // purple - console, window, document
+  literal: '#0033B3',      // blue - true, false, null
+  
+  // Strings and values
+  string: '#067D17',       // green - "text", 'text'
+  number: '#1750EB',       // blue - 42, 3.14
+  regexp: '#264EFF',       // blue - regular expressions
+  
+  // Comments and docs
+  comment: '#8C8C8C',      // gray - // comment
+  doctag: '#8C8C8C',       // gray - @param, @return
+  
+  // Functions and classes
+  function: '#00627A',     // teal - function calls
+  title: '#00627A',        // teal - class/function definitions  
+  'title.function': '#00627A',
+  'title.class': '#7A3E9D',
+  class: '#7A3E9D',        // purple - class names
+  
+  // Variables and properties
+  variable: '#871094',     // magenta - variables
+  property: '#871094',     // magenta - object properties
+  attr: '#174AD4',         // blue - HTML/XML attributes
+  params: '#000000',       // black - function parameters
+  
+  // HTML/XML specific
+  tag: '#0033B3',          // blue - HTML tags
+  name: '#0033B3',         // blue - tag names
+  attribute: '#174AD4',    // blue - attributes
+  
+  // Operators and punctuation
+  operator: '#000000',     // black - +, -, =
+  punctuation: '#000000',  // black - (), {}, []
+  
+  // Special
+  meta: '#9E880D',         // yellow/brown - meta info, decorators
+  symbol: '#067D17',       // green - symbols
+  selector: '#0033B3',     // blue - CSS selectors
+  'selector-tag': '#0033B3',
+  'selector-class': '#7A3E9D',
+  'selector-id': '#174AD4',
+  
+  // Template strings
+  subst: '#000000',        // black - template substitutions
+  'template-variable': '#871094',
+  
+  // Types
+  type: '#7A3E9D',         // purple - type annotations
+  
+  // Default
+  default: '#333333'       // default text color
+};
+
+/**
+ * Converts highlight.js HTML output to pdfmake styled text array
+ * Handles nested spans by using a DOM parser approach
+ */
+function hljsToPdfmake(highlightedHtml) {
+  const result = [];
+  
+  // Create a temporary element to parse the HTML
+  const temp = document.createElement('div');
+  temp.innerHTML = highlightedHtml;
+  
+  console.log('[PDF Generator] hljsToPdfmake parsing HTML, childNodes:', temp.childNodes.length);
+  
+  function getColorForClasses(classList) {
+    if (!classList) return null;
+    
+    for (const cls of classList) {
+      if (cls.startsWith('hljs-')) {
+        const tokenType = cls.replace('hljs-', '');
+        
+        // Try exact match first
+        if (SYNTAX_COLORS[tokenType]) {
+          return SYNTAX_COLORS[tokenType];
+        }
+        
+        // Try with dots replaced (e.g., title.function -> title)
+        const basePart = tokenType.split('.')[0];
+        if (SYNTAX_COLORS[basePart]) {
+          return SYNTAX_COLORS[basePart];
+        }
+        
+        console.log('[PDF Generator] Unknown token type:', tokenType);
+      }
+    }
+    return null;
+  }
+  
+  function processNode(node, inheritedColor) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent;
+      if (text) {
+        result.push({
+          text: text,
+          color: inheritedColor || SYNTAX_COLORS.default
+        });
+      }
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      // Determine color from class, or inherit from parent
+      const color = getColorForClasses(node.classList) || inheritedColor;
+      
+      // Process children
+      for (const child of node.childNodes) {
+        processNode(child, color);
+      }
+    }
+  }
+  
+  // Process all child nodes
+  for (const child of temp.childNodes) {
+    processNode(child, SYNTAX_COLORS.default);
+  }
+  
+  // Debug: show some colored items
+  const coloredItems = result.filter(item => item.color !== SYNTAX_COLORS.default);
+  console.log('[PDF Generator] Total items:', result.length, 'Colored items:', coloredItems.length);
+  if (coloredItems.length > 0) {
+    console.log('[PDF Generator] Sample colored item:', coloredItems[0]);
+  }
+  
+  return result;
+}
+
+/**
+ * Applies syntax highlighting to code and returns pdfmake content
+ */
+function highlightCode(code, language) {
+  console.log('[PDF Generator] highlightCode called with language:', language || '(auto-detect)');
+  console.log('[PDF Generator] Code length:', code.length, 'chars');
+  console.log('[PDF Generator] hljs available:', typeof hljs !== 'undefined');
+  
+  try {
+    // Check if hljs is available
+    if (typeof hljs === 'undefined') {
+      console.warn('[PDF Generator] hljs is undefined - highlight.js not loaded properly');
+      return [{ text: code, color: SYNTAX_COLORS.default }];
+    }
+    
+    let highlighted;
+    
+    if (language && hljs.getLanguage(language)) {
+      console.log('[PDF Generator] Using specified language:', language);
+      highlighted = hljs.highlight(code, { language: language });
+    } else {
+      if (language) {
+        console.log('[PDF Generator] Language not recognized:', language, '- using auto-detect');
+      }
+      // Auto-detect language
+      highlighted = hljs.highlightAuto(code);
+      console.log('[PDF Generator] Auto-detected language:', highlighted.language || 'none');
+      console.log('[PDF Generator] Detection relevance:', highlighted.relevance);
+    }
+    
+    console.log('[PDF Generator] Highlighted HTML length:', highlighted.value.length);
+    console.log('[PDF Generator] Highlighted HTML sample:', highlighted.value.substring(0, 200));
+    
+    const pdfContent = hljsToPdfmake(highlighted.value);
+    console.log('[PDF Generator] PDF content items:', pdfContent.length);
+    
+    return pdfContent;
+  } catch (e) {
+    console.error('[PDF Generator] Syntax highlighting failed:', e);
+    return [{ text: code, color: SYNTAX_COLORS.default }];
+  }
+}
 
 /**
  * Helper: Sanitizes text for PDFMake.
@@ -103,6 +285,7 @@ function parseMarkdownToPdfContent(md) {
   let inCodeBlock = false;
   let codeBlockContent = '';
   let codeBlockMargin = 0; // Stores indentation for the current block
+  let codeBlockLanguage = ''; // Language for syntax highlighting
   
   let inList = false;
   let listType = null; // 'ul' or 'ol'
@@ -148,16 +331,19 @@ function parseMarkdownToPdfContent(md) {
           })
           .join('\n');
         
+        // Apply syntax highlighting
+        const highlightedContent = highlightCode(expandedCode, codeBlockLanguage);
+        
         content.push({
           table: {
             widths: ['100%'],
             body: [[{ 
-              // Preserve exact content in code blocks
-              text: expandedCode, 
+              // Use highlighted text array instead of plain text
+              text: highlightedContent, 
               style: 'code_block',
               border: [false, false, false, false], 
-              fillColor: '#f4f4f4',
-              preserveLeadingSpaces: true  // Fix: preserve indentation in code blocks
+              fillColor: '#f8f8f8',
+              preserveLeadingSpaces: true
             }]]
           },
           layout: 'noBorders',
@@ -167,9 +353,17 @@ function parseMarkdownToPdfContent(md) {
         codeBlockContent = '';
         inCodeBlock = false;
         codeBlockMargin = 0;
+        codeBlockLanguage = '';
       } else {
         // START OF CODE BLOCK
         inCodeBlock = true;
+        
+        // Extract language from the code fence (e.g., ```javascript or ```{python})
+        const langMatch = trimmed.match(/^```\{?(\w+)\}?/);
+        codeBlockLanguage = langMatch ? langMatch[1].toLowerCase() : '';
+        
+        console.log('[PDF Generator] Code block started, raw fence:', trimmed);
+        console.log('[PDF Generator] Extracted language:', codeBlockLanguage || '(none)');
         
         // Capture indentation of the opening fence to align strictly with lists
         const indentMatch = line.match(/^\s*/);

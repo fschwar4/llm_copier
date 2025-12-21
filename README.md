@@ -16,12 +16,28 @@
 
 - **Full DOM capture.** Need the raw page source for debugging or archival purposes? A third button allows you to copy the complete HTML document to your clipboard.
 
+- **Syntax Highlighting for code blocks.** The PDF export includes syntax highlighting for code snippets using [`highlight.js`](https://highlightjs.org/). See below for a full list of supported languages.
+
 - **Minimal permissions.** The extension uses the `activeTab` permission to execute scripts in the currently active tab only in response to a user action (clicking the extension button), and the `clipboardWrite` permission to copy exported content to the clipboard. It does not read from your clipboard or access unrelated browsing data. **Host permissions are restricted to the ChatGPT, Claude, and Gemini domains only.**
 
 - **Open source.** Open source license (AGPL-3.0) You can inspect the code or build it yourself from the [GitHub repository](https://github.com/fschwar4/llm_copier).
 
 > **🔒 100% client‑side.**  
 > All data extraction and conversion happen in your browser — no requests to external servers, no telemetry, and no tracking.
+
+### Supported Languages for Syntax Highlighting
+
+Language detection is automatic when no language is specified in the code fence.
+PDF export includes syntax highlighting for the following languages:
+
+**General Purpose:** C, C++, C#, Go, Java, JavaScript, Kotlin, Lua, Objective-C, Perl, PHP, Python, R, Ruby, Rust, Swift, TypeScript, VB.NET  
+**Scientific/Statistical:** Julia, Mathematica, MATLAB, SAS  
+**Web Technologies:** CSS, GraphQL, HTML/XML, HTTP, JSON, Less, SCSS, PHP Template, WASM  
+**Shell/Scripting:** Bash, PowerShell, Shell  
+**Database:** PgSQL, SQL  
+**Configuration/Markup:** AsciiDoc, Dockerfile, INI, LaTeX, Makefile, Markdown, YAML  
+**Other:** Diff, Plaintext, Python REPL
+
 
 ## Roadmap
 
@@ -38,4 +54,7 @@
 
 Contributions are welcome! Feel free to open issues or pull requests to improve model detection for additional providers, enhance the PDF layout or optimise performance on extremely long conversations.
 
-This projects uses the [pdfmake](https://github.com/bpampuch/pdfmake) library for PDF generation.
+This project built upon the following projects:
+
+- [pdfmake](http://pdfmake.org/#/) for PDF generation \[[MIT License](https://github.com/bpampuch/pdfmake)\].
+- [highlight.js](https://highlightjs.org/) for code syntax highlighting \[[BSD-3-Clause License](https://github.com/highlightjs/highlight.js)\].
