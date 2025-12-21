@@ -29,7 +29,7 @@ async function extractDataByType(tabId, name) {
       const data = await extractMDData(tabId);
       return data;
     
-    case 'DOM':
+    case 'HTML':
       const [{ result }] = await browser.scripting.executeScript({
         target: { tabId },
         func: () => document.documentElement.outerHTML
