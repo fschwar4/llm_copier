@@ -1,6 +1,6 @@
-import './pdfmake.min.js';
-import './vfs_fonts.js';
-import './highlight.min.js';
+import './lib/pdfmake.min.js';
+import './lib/vfs_fonts.js';
+import './lib/highlight.min.js';
 
 // Debug: Check if hljs loaded
 console.log('[PDF Generator] highlight.js loaded:', typeof hljs !== 'undefined');
