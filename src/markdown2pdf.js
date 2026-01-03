@@ -37,7 +37,18 @@ const DEFAULT_SETTINGS = {
   syntaxHighlight: true,
   
   // Table of contents
-  tocEnabled: true
+  tocEnabled: true,
+
+  // Table styling
+  tableLineWidth: 0.5,
+  tableHeaderLineColor: '#000000',
+  tableLineColor: '#cccccc'
+  ,
+  /**
+   * Background fill color for the table header row. This allows customizing the
+   * subtle shading applied to the first row of each table.
+   */
+  tableHeaderFillColor: '#f5f5f5'
 };
 
 /**
@@ -376,10 +387,41 @@ function parseMarkdownToPdfContent(md, settings = DEFAULT_SETTINGS) {
   };
   const flushTable = () => {
     if (collectingTable && tableRows.length > 0) {
+      // Build a custom table layout based on the current settings. This layout
+      // defines line widths and colors for horizontal and vertical lines and
+      // applies a light background color to the header row. The horizontal
+      // dividing line between the header and body (i === 1) uses a distinct
+      // color specified in settings.tableHeaderLineColor. All other lines use
+      // settings.tableLineColor. Line width defaults to settings.tableLineWidth.
+      const tableLayout = {
+        hLineWidth: (i, node) => {
+          // Use the configured line width for all horizontal lines
+          return settings.tableLineWidth ?? 0.5;
+        },
+        vLineWidth: (i, node) => {
+          // Use the configured line width for all vertical lines
+          return settings.tableLineWidth ?? 0.5;
+        },
+        hLineColor: (i, node) => {
+          // If this is the horizontal line below the header (index 1), use the
+          // header divider color; otherwise use the general table line color
+          return (i === 1 ? (settings.tableHeaderLineColor || '#000000') : (settings.tableLineColor || '#cccccc'));
+        },
+        vLineColor: (i, node) => {
+          return settings.tableLineColor || '#cccccc';
+        },
+        fillColor: (rowIndex, node, colIndex) => {
+          // Apply a fill color to the header row using the configured color. If not set,
+          // fall back to a default light grey.
+          if (rowIndex === 0) {
+            return settings.tableHeaderFillColor || '#f5f5f5';
+          }
+          return null;
+        }
+      };
       content.push({
         table: { body: tableRows },
-        // Remove any fill colors to keep table lean and simple
-        layout: { fillColor: () => null },
+        layout: tableLayout,
         margin: [0, 5, 0, 10]
       });
       tableRows = [];
