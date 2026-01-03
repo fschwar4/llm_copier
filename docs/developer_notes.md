@@ -6,19 +6,24 @@ Note: Personal checklist for releasing new versions of the LLM Markdown Copier F
 
 **1. Functionality Testing (Temporary Extension mode)**
 
+Go to `about:debugging#/runtime/this-firefox` to load the temporary extension.
+
 * **LLM Integration Check:** Verify that the extension works correctly with all supported models:
+  
   * [ ] ChatGPT
   * [ ] Gemini
   * [ ] Claude
 
 
 * **Regression Testing:** Double-check that core features remain unbroken:
+
   * [ ] PDF titles are detected/extracted correctly.
   * [ ] Code syntax highlighting renders correctly.
   * [ ] Table formatting is preserved.
 
 
 * **UI/UX Settings:** Ensure layout configurations persist:
+
   * [ ] Change **all** settings to custom values and verify effects.
   * [ ] Perform a "Reset to Default" and verify the restoration.
 
