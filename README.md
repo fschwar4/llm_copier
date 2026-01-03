@@ -49,7 +49,7 @@ PDF export includes syntax highlighting for the following languages:
 
 - [x] Fix: Code indentation in PDF output
 - [x] Restructure directory layout (images)
-- [ ] Add nice layout option for PDF Tables (currently raw markdown)
+- [x] Add nice layout option for PDF Tables (currently raw markdown)
 - [ ] Add support for additional LLM web apps
 - [ ] Decision about Emoji and special character support
   - [ ] would increase file size significantly (as embedded fonts are needed)
