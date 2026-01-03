@@ -6,7 +6,7 @@ Note: Personal checklist for releasing new versions of the LLM Markdown Copier F
 
 **1. Functionality Testing (Temporary Extension mode)**
 
-Go to `about:debugging#/runtime/this-firefox` to load the temporary extension.
+Go to [`about:debugging#/runtime/this-firefox`](about:debugging#/runtime/this-firefox) to load the temporary extension.
 
 * **LLM Integration Check:** Verify that the extension works correctly with all supported models:
   
@@ -36,6 +36,7 @@ Go to `about:debugging#/runtime/this-firefox` to load the temporary extension.
     * [ ] Roadmap section
     * [ ] Repository tree structure (`tree . | pbcopy`)
   * [ ] Check if screenshots need updating based on UI changes.
+
 
 **3. Build Distribution**
 
