@@ -44,7 +44,6 @@ Go to `about:debugging#/runtime/this-firefox` to load the temporary extension.
 
 ```bash
 zip -d llm_copier.zip "__MACOSX/*" "*.DS_Store" "*/.DS_Store"
-
 ```
 
 **4. Commit Changes**
