@@ -33,6 +33,8 @@
 > **100% client‑side.**  
 > All data extraction and conversion happen in your browser – no requests to external servers, no telemetry, and no tracking.
 
+---
+
 ### Supported Languages for Syntax Highlighting
 
 Language detection is automatic when no language is specified in the code fence.
@@ -62,9 +64,9 @@ PDF export includes syntax highlighting for the following languages:
   - [ ] Explore possibility of title extraction of temporary chats
 - [x] Add: Style Setting Page for PDF output (font size, margin size, color scheme)
 
-## Contributing
+## Contributions
 
-Contributions are welcome! Feel free to open issues or pull requests to improve model detection for additional providers, enhance the PDF layout or optimise performance on extremely long conversations.
+Contributions are welcome! Feel free to open issues or pull requests to improve model detection for additional providers.
 
 This project built upon the following projects:
 
