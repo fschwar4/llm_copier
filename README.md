@@ -1,6 +1,6 @@
-# [LLM Markdown Copier Firefox Extension](https://addons.mozilla.org/en-US/firefox/addon/llm-markdown-copier/)
+# [LLM Copier Firefox Extension](https://addons.mozilla.org/en-US/firefox/addon/llm-markdown-copier/)
 
-[**LLM Markdown Copier**](https://addons.mozilla.org/en-US/firefox/addon/llm-markdown-copier/) is a secure and lightweight Firefox extension that lets you export chat sessions from large language model (LLM) web apps as clean, shareable Markdown, portable PDF documents or raw HTML document object model ([DOM](https://en.wikipedia.org/wiki/Document_Object_Model)). It currently supports OpenAI ChatGPT ([`chatgpt.com`](https://chatgpt.com)), Anthropic Claude ([`claude.ai`](https://claude.ai)) and Google Gemini ([`gemini.google.com`](https://gemini.google.com)). **The extension is intentionally simple: everything happens entirely in your browser and nothing is ever sent to any server.**
+[**LLM Copier**](https://addons.mozilla.org/en-US/firefox/addon/llm-markdown-copier/) is a secure and lightweight Firefox extension that lets you export chat sessions from large language model (LLM) web apps as clean PDF documents, Quarto Markdown documents or raw HTML document object model ([DOM](https://en.wikipedia.org/wiki/Document_Object_Model)). It currently supports OpenAI ChatGPT ([`chatgpt.com`](https://chatgpt.com)), Anthropic Claude ([`claude.ai`](https://claude.ai)) and Google Gemini ([`gemini.google.com`](https://gemini.google.com)). **The extension is intentionally simple: everything happens entirely in your browser and nothing is ever sent to any server.**
 
 ## Features
 
