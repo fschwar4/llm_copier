@@ -8,6 +8,7 @@
   <a href="./docs/images/extension_popup.png" target="_blank" rel="noopener noreferrer" style="display:inline-block;vertical-align:middle;">
     <img src="./docs/images/extension_popup.png" alt="Extension popup screenshot" width="240" style="vertical-align:middle;" />
   </a>
+  &nbsp;&nbsp;
   <a href="./docs/images/settings_page.png" target="_blank" rel="noopener noreferrer" style="display:inline-block;vertical-align:middle;">
     <img src="./docs/images/settings_page.png" alt="Settings page screenshot" width="240" style="vertical-align:middle;" />
   </a>
