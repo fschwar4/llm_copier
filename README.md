@@ -5,12 +5,12 @@
 ## Features
 
 <p align="center">
-  <a href="./docs/extension_popup.png" target="_blank" rel="noopener noreferrer" style="display:inline-block;vertical-align:middle;">
-    <img src="./docs/extension_popup.png" alt="Extension popup screenshot" width="240" style="vertical-align:middle;" />
+  <a href="./docs/images/extension_popup.png" target="_blank" rel="noopener noreferrer" style="display:inline-block;vertical-align:middle;">
+    <img src="./docs/images/extension_popup.png" alt="Extension popup screenshot" width="240" style="vertical-align:middle;" />
   </a>
   &nbsp;&nbsp;
-  <a href="./docs/settings_page.png" target="_blank" rel="noopener noreferrer" style="display:inline-block;vertical-align:middle;">
-    <img src="./docs/settings_page.png" alt="Settings page screenshot" width="240" style="vertical-align:middle;" />
+  <a href="./docs/images/settings_page.png" target="_blank" rel="noopener noreferrer" style="display:inline-block;vertical-align:middle;">
+    <img src="./docs/images/settings_page.png" alt="Settings page screenshot" width="240" style="vertical-align:middle;" />
   </a>
 </p>
 
@@ -53,7 +53,7 @@ PDF export includes syntax highlighting for the following languages:
 - [x] Fix: Code indentation in PDF output
 - [x] Restructure directory layout (images)
 - [x] Add nice layout option for PDF Tables (currently raw markdown)
-- [ ] Add developer documentation
+- [x] Add developer documentation
 - [ ] Add support for additional LLM web apps
 - [ ] Decision about Emoji and special character support
   - [ ] would increase file size significantly (as embedded fonts are needed)
@@ -76,22 +76,25 @@ This project built upon the following projects:
 
 ## Structure of the Repository
 
+<pre>
 .
 ├── LICENSE
 ├── README.md
-├── dist                       # Build output
+├── dist
 │   └── llm_copier.zip
-├── docs                       # Documentation and screenshots
-│   ├── extension_popup.png
-│   └── settings_page.png
-└── src                        # Extension source (this gets packaged)
+├── docs
+│   ├── developer_notes.md
+│   └── images
+│       ├── extension_popup.png
+│       └── settings_page.png
+└── src
     ├── extractors.js
     ├── icons
     │   ├── favicon-128.png
     │   ├── favicon-32.png
     │   ├── favicon-64.png
     │   └── favicon.svg
-    ├── lib                    # Third-party libraries
+    ├── lib
     │   ├── highlight.min.js
     │   ├── pdfmake.min.js
     │   └── vfs_fonts.js
@@ -102,3 +105,6 @@ This project built upon the following projects:
     ├── settings.html
     ├── settings.js
     └── utils.js
+
+7 directories, 21 files
+</pre>
