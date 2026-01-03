@@ -247,24 +247,20 @@ function cleanText(text) {
  */
 function parseInline(text) {
   if (!text) return [];
-
   const regex = /(\*\*.*?\*\*)|(`.*?`)|(\[.*?\]\(.*?\))/g;
-  
   const parts = text.split(regex);
   const inlineContent = [];
-
   parts.forEach(part => {
-    if (!part) return; 
-
+    if (!part) return;
     // 1. Handle Bold
     if (part.startsWith('**') && part.endsWith('**')) {
       inlineContent.push({ text: cleanText(part.slice(2, -2)), bold: true });
-    } 
+    }
     // 2. Handle Inline Code
     else if (part.startsWith('`') && part.endsWith('`')) {
-      inlineContent.push({ 
-        text: cleanText(part.slice(1, -1)), 
-        style: 'inline_code' 
+      inlineContent.push({
+        text: cleanText(part.slice(1, -1)),
+        style: 'inline_code'
       });
     }
     // 3. Handle Links
@@ -279,13 +275,12 @@ function parseInline(text) {
       } else {
         inlineContent.push(cleanText(part));
       }
-    } 
+    }
     // 4. Regular Text
     else {
       inlineContent.push(cleanText(part));
     }
   });
-
   return inlineContent;
 }
 
@@ -296,28 +291,22 @@ function parseInline(text) {
 function extractMetadata(md) {
   const yamlRegex = /^---([\s\S]*?)---/;
   const match = md.match(yamlRegex);
-  
   const metadata = {
     title: 'Chat Export',
     author: 'LLM Copier',
     date: new Date().toISOString().split('T')[0],
     cleanMd: md
   };
-
   if (match) {
     const yamlContent = match[1];
-    
-    const titleMatch = yamlContent.match(/title:\s*"(.*?)"/);
-    const authorMatch = yamlContent.match(/author:\s*"(.*?)"/);
-    const dateMatch = yamlContent.match(/date:\s*"(.*?)"/);
-
+    const titleMatch = yamlContent.match(/title:\s*"([^"]*)"/);
+    const authorMatch = yamlContent.match(/author:\s*"([^"]*)"/);
+    const dateMatch = yamlContent.match(/date:\s*"([^"]*)"/);
     if (titleMatch) metadata.title = titleMatch[1];
     if (authorMatch) metadata.author = authorMatch[1];
     if (dateMatch) metadata.date = dateMatch[1];
-
-    metadata.cleanMd = md.replace(yamlRegex, '').replace(/\\newpage/g, '').trim();
+    metadata.cleanMd = md.replace(yamlRegex, '').replace(/\newpage/g, '').trim();
   }
-
   return metadata;
 }
 
@@ -329,23 +318,50 @@ function extractMetadata(md) {
 function parseMarkdownToPdfContent(md, settings = DEFAULT_SETTINGS) {
   const content = [];
   const lines = md.split('\n');
-  
-  // State variables
+  // State variables for code blocks
   let inCodeBlock = false;
   let codeBlockContent = '';
-  let codeBlockMargin = 0; // Stores indentation for the current block
-  let codeBlockLanguage = ''; // Language for syntax highlighting
-  
+  let codeBlockMargin = 0;
+  let codeBlockLanguage = '';
+  // State variables for lists
   let inList = false;
-  let listType = null; // 'ul' or 'ol'
+  let listType = null;
   let currentList = [];
-
-  // Regex Helpers - Updated to allow leading whitespace for indentation
+  // State variables for tables
+  let collectingTable = false;
+  let tableRows = [];
+  // Regex helpers (allow leading whitespace)
   const headerRegex = /^\s*(#{1,7})\s+(.*)/;
   const ulRegex = /^\s*[-*]\s+(.*)/;
   const olRegex = /^\s*\d+\.\s+(.*)/;
   const quoteRegex = /^\s*>\s+(.*)/;
 
+  /**
+   * Helper to detect if a given line is a Markdown table delimiter.
+   * A delimiter line separates the header row from table body rows and typically
+   * looks like "|---|---|---|" or variants with optional leading/trailing pipes,
+   * spaces and alignment colons (e.g. "| :--- | ---: | :-: |").
+   *
+   * @param {string} line - The raw line (not trimmed)
+   * @returns {boolean} True if the line is a table delimiter
+   */
+  function isTableDelimiter(line) {
+    if (!line || !line.includes('|')) return false;
+    let delim = line.trim();
+    // Normalize by ensuring leading and trailing pipes exist so that split
+    // produces only cell delimiter segments. This allows detection for
+    // delimiters with or without starting/ending '|'.
+    if (!delim.startsWith('|')) delim = '|' + delim;
+    if (!delim.endsWith('|')) delim = delim + '|';
+    // Remove the first and last pipe and split into individual cell markers
+    const cells = delim.slice(1, -1).split('|');
+    // Each cell marker must consist of optional colon(s), at least three hyphens,
+    // and optional colon(s). Allow whitespace around the markers.
+    return cells.every(cell => {
+      const c = cell.trim();
+      return /^:?-{3,}:?$/.test(c);
+    });
+  }
   const flushList = () => {
     if (inList && currentList.length > 0) {
       if (listType === 'ul') {
@@ -358,51 +374,52 @@ function parseMarkdownToPdfContent(md, settings = DEFAULT_SETTINGS) {
       listType = null;
     }
   };
-
-  lines.forEach((line) => {
+  const flushTable = () => {
+    if (collectingTable && tableRows.length > 0) {
+      content.push({
+        table: { body: tableRows },
+        // Remove any fill colors to keep table lean and simple
+        layout: { fillColor: () => null },
+        margin: [0, 5, 0, 10]
+      });
+      tableRows = [];
+      collectingTable = false;
+    }
+  };
+  // Iterate over lines with index to allow lookahead for tables
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
     const trimmed = line.trim();
-
-    // --- 1. CODE BLOCKS ---
+    // Handle fenced code blocks first
     if (trimmed.startsWith('```')) {
-      flushList(); 
+      flushTable();
+      flushList();
       if (inCodeBlock) {
-        // END OF CODE BLOCK
-        // Expand 2-space indentation to 4-space for better readability
-        const expandedCode = codeBlockContent
-          .replace(/\n$/, '')
-          .split('\n')
-          .map(line => {
-            const match = line.match(/^(\s*)(.*)/);
-            const leadingSpaces = match[1];
-            const rest = match[2];
-            // Double each leading space (2-space -> 4-space indentation)
-            return leadingSpaces.replace(/ /g, '  ') + rest;
-          })
-          .join('\n');
-        
-        // Apply syntax highlighting if enabled in settings
+        // End of code block
+        const expandedCode = codeBlockContent.replace(/\n$/, '').split('\n').map((cLine) => {
+          const match = cLine.match(/^(\s*)(.*)/);
+          const leadingSpaces = match[1];
+          const rest = match[2];
+          return leadingSpaces.replace(/ /g, '  ') + rest;
+        }).join('\n');
         let codeContent;
         if (settings.syntaxHighlight) {
           codeContent = highlightCode(expandedCode, codeBlockLanguage);
         } else {
-          // Plain text without highlighting
           codeContent = [{ text: expandedCode, color: '#333333' }];
         }
-        
         content.push({
           table: {
             widths: ['100%'],
-            body: [[{ 
-              // Use highlighted text array or plain text
-              text: codeContent, 
+            body: [[{
+              text: codeContent,
               style: 'code_block',
-              border: [false, false, false, false], 
+              border: [false, false, false, false],
               fillColor: settings.codeBg || '#f8f8f8',
               preserveLeadingSpaces: true
             }]]
           },
           layout: 'noBorders',
-          // Apply the captured margin to the entire block
           margin: [codeBlockMargin, 5, 0, 10]
         });
         codeBlockContent = '';
@@ -410,125 +427,139 @@ function parseMarkdownToPdfContent(md, settings = DEFAULT_SETTINGS) {
         codeBlockMargin = 0;
         codeBlockLanguage = '';
       } else {
-        // START OF CODE BLOCK
+        // Start of code block
         inCodeBlock = true;
-        
-        // Extract language from the code fence (e.g., ```javascript or ```{python})
         const langMatch = trimmed.match(/^```\{?(\w+)\}?/);
         codeBlockLanguage = langMatch ? langMatch[1].toLowerCase() : '';
-        
-        console.log('[PDF Generator] Code block started, raw fence:', trimmed);
-        console.log('[PDF Generator] Extracted language:', codeBlockLanguage || '(none)');
-        
-        // Capture indentation of the opening fence to align strictly with lists
         const indentMatch = line.match(/^\s*/);
         const indentSize = indentMatch ? indentMatch[0].length : 0;
-        // 4 units per space aligns with list indentation logic
-        codeBlockMargin = indentSize * 4; 
+        codeBlockMargin = indentSize * 4;
       }
-      return;
+      continue;
     }
-    
+    // If inside code block, accumulate code and continue
     if (inCodeBlock) {
-      // Preserve line as-is for code content (strict indentation)
       codeBlockContent += line + '\n';
-      return;
+      continue;
     }
-
-    // --- 2. LISTS ---
-    // Match against the raw line to detect patterns even if indented
+    // Table detection logic
+    // If we're not currently collecting a table, check if the current line is a header row
+    // and the next line is a delimiter line. A valid header row must contain at least
+    // one pipe character to separate columns. The delimiter line is detected via
+    // the isTableDelimiter helper defined above.
+    if (!collectingTable) {
+      const nextRaw = lines[i + 1] || null;
+      if (trimmed.includes('|') && nextRaw && isTableDelimiter(nextRaw)) {
+        // Begin collecting table rows
+        flushList();
+        collectingTable = true;
+        // Normalize header row by removing leading/trailing pipes, then split on pipes
+        let header = trimmed;
+        if (header.startsWith('|')) header = header.slice(1);
+        if (header.endsWith('|')) header = header.slice(0, -1);
+        const headerCells = header.split('|').map(cell => cell.trim());
+        tableRows.push(headerCells.map(cell => ({ text: cleanText(cell), bold: true })));
+        // Skip the delimiter line by incrementing i
+        i++;
+        continue;
+      }
+    }
+    // If currently collecting a table, process each subsequent row until a non-table line
+    if (collectingTable) {
+      // A valid table row must contain at least one pipe character
+      if (trimmed.includes('|')) {
+        // Normalize row by removing optional leading/trailing pipes then split on pipes
+        let rowLine = trimmed;
+        if (rowLine.startsWith('|')) rowLine = rowLine.slice(1);
+        if (rowLine.endsWith('|')) rowLine = rowLine.slice(0, -1);
+        const cells = rowLine.split('|').map(cell => ({ text: cleanText(cell.trim()) }));
+        tableRows.push(cells);
+        continue;
+      } else {
+        // End of table: flush accumulated table rows and continue normal processing
+        flushTable();
+        // fall through to handle the current line normally
+      }
+    }
+    // Lists
     const ulMatch = line.match(ulRegex);
     const olMatch = line.match(olRegex);
-
     if (ulMatch || olMatch) {
+      flushTable();
       const type = ulMatch ? 'ul' : 'ol';
       const text = ulMatch ? ulMatch[1] : olMatch[1];
-      
-      // Calculate indentation level
-      // Using 4 spaces per level as requested
       const indentMatch = line.match(/^\s*/);
       const indentSize = indentMatch ? indentMatch[0].length : 0;
-      
-      // Increased multiplier to 4 for more distinct visual whitespace in PDF
-      // 4 spaces * 4 = 16 units of margin per level
       const leftMargin = Math.max(0, indentSize * 4);
-
       if (inList && listType !== type) {
         flushList();
       }
-
       inList = true;
       listType = type;
-      
-      currentList.push({ 
-        text: parseInline(text), 
-        // Apply strict visual indentation
-        margin: [leftMargin, 2, 0, 2] 
+      currentList.push({
+        text: parseInline(text),
+        margin: [leftMargin, 2, 0, 2]
       });
-      return;
+      continue;
     }
-
+    // Blank line inside list
     if (trimmed === '') {
-      if (!inList) return; 
-      return;
+      continue;
     }
-    
+    // Flush list before other content
     flushList();
-
-    // --- 3. HEADERS (H1 - H7) ---
+    // Headers
     const headerMatch = line.match(headerRegex);
     if (headerMatch) {
+      flushTable();
       const level = headerMatch[1].length;
       const text = headerMatch[2];
-      
       let styleName = 'body';
       if (level === 1) styleName = 'header';
       else if (level === 2) styleName = 'subheader';
-      else styleName = `h${level}`; 
-
-      const headerObj = { 
-        text: cleanText(text), 
+      else styleName = `h${level}`;
+      const headerObj = {
+        text: cleanText(text),
         style: styleName,
-        tocItem: level === 1 
+        tocItem: level === 1
       };
-
       if (level === 1) {
         headerObj.tocStyle = 'toc_header';
       }
-
       content.push(headerObj);
-      return;
+      continue;
     }
-
-    // --- 4. BLOCKQUOTES ---
+    // Blockquotes
     const quoteMatch = line.match(quoteRegex);
     if (quoteMatch) {
+      flushTable();
       content.push({
         text: parseInline(quoteMatch[1]),
         style: 'quote'
       });
-      return;
+      continue;
     }
-
-    // --- 5. HORIZONTAL RULE ---
+    // Horizontal rule
     if (trimmed === '---' || trimmed === '***') {
-      content.push({ 
-        canvas: [{ type: 'line', x1: 0, y1: 5, x2: 515, y2: 5, lineWidth: 1, lineColor: '#cccccc' }], 
-        margin: [0, 10, 0, 10] 
-      });
-      return;
-    }
-
-    // --- 6. STANDARD PARAGRAPH ---
-    if (trimmed !== '') {
+      flushTable();
       content.push({
-        text: parseInline(line.trim()), // Trim paragraph text
+        canvas: [{ type: 'line', x1: 0, y1: 5, x2: 515, y2: 5, lineWidth: 1, lineColor: '#cccccc' }],
+        margin: [0, 10, 0, 10]
+      });
+      continue;
+    }
+    // Standard paragraph
+    if (trimmed !== '') {
+      flushTable();
+      content.push({
+        text: parseInline(trimmed),
         style: 'body'
       });
     }
-  });
-
+  }
+  // Flush any remaining structures
   flushList();
+  flushTable();
   return content;
 }
 
@@ -537,13 +568,10 @@ function parseMarkdownToPdfContent(md, settings = DEFAULT_SETTINGS) {
  */
 export async function markdownToPdf(markdown, filename = 'chat-export.pdf') {
   console.log('[PDF Generator] Starting conversion...');
-
   // Load settings from storage
   const settings = await getSettings();
   console.log('[PDF Generator] Using settings:', settings);
-
   const { title, author, date, cleanMd } = extractMetadata(markdown);
-
   pdfMake.fonts = {
     Roboto: {
       normal: 'Roboto-Regular.ttf',
@@ -552,46 +580,35 @@ export async function markdownToPdf(markdown, filename = 'chat-export.pdf') {
       bolditalics: 'Roboto-MediumItalic.ttf'
     },
     Courier: {
-      normal: 'Roboto-Regular.ttf',     
-      bold: 'Roboto-Medium.ttf',        
-      italics: 'Roboto-Italic.ttf',     
+      normal: 'Roboto-Regular.ttf',
+      bold: 'Roboto-Medium.ttf',
+      italics: 'Roboto-Italic.ttf',
       bolditalics: 'Roboto-MediumItalic.ttf'
     }
   };
-
   // Build content array based on TOC setting
   const contentArray = [
-    // --- TITLE PAGE ---
     { text: cleanText(title), style: 'reportTitle', margin: [0, 60, 0, 10], alignment: 'center' },
     { text: cleanText(author), style: 'reportAuthor', alignment: 'center', margin: [0, 0, 0, 5] },
     { text: cleanText(date), style: 'reportDate', alignment: 'center', margin: [0, 0, 0, 40] }
   ];
-
-  // Add TOC if enabled
   if (settings.tocEnabled) {
     contentArray.push(
       { text: 'Table of Contents', style: 'h3', margin: [0, 20, 0, 10] },
-      { 
+      {
         toc: {
           title: { text: '' },
-          numberStyle: { bold: true } 
-        } 
+          numberStyle: { bold: true }
+        }
       }
     );
   }
-
-  // Page break before main content
   contentArray.push({ text: '', pageBreak: 'after' });
-
-  // Add main content
   contentArray.push(...parseMarkdownToPdfContent(cleanMd, settings));
-
   const docDefinition = {
     pageSize: settings.pageSize || 'A4',
     pageMargins: [settings.pageMargins, settings.pageMargins, settings.pageMargins, settings.pageMargins],
-    
     content: contentArray,
-
     styles: {
       reportTitle: { fontSize: settings.fontTitle, bold: true, color: settings.colorTitle },
       reportAuthor: { fontSize: 14, color: '#555555' },
@@ -615,14 +632,17 @@ export async function markdownToPdf(markdown, filename = 'chat-export.pdf') {
     },
     info: {
       title: cleanText(title),
-      author: cleanText(author),
+      author: cleanText(author)
     }
   };
-
   try {
     pdfMake.createPdf(docDefinition).download(filename);
     console.log('[PDF Generator] Download started.');
   } catch (e) {
     console.error('[PDF Generator] Error creating PDF:', e);
   }
+  // Ensure the async function has a closing brace. Without this, the file would
+  // fail to parse due to an unbalanced bracket. The try/catch block above
+  // handles errors during PDF creation, and this brace closes the
+  // markdownToPdf function definition.
 }
