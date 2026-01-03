@@ -55,6 +55,7 @@ PDF export includes syntax highlighting for the following languages:
   - [ ] would increase file size significantly (as embedded fonts are needed)
 - [ ] Find solution to export multiple conversation paths at once (re-iterated questions / branches)
   - [ ] Think about export of artifacts (images, files) as well (one zip file?)
+  - [ ] Explore possibility of title extraction of temporary chats
 - [x] Add: Style Setting Page for PDF output (font size, margin size, color scheme)
 
 ## Contributing
