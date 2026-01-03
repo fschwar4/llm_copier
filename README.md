@@ -1,6 +1,6 @@
-# LLM Markdown Copier Firefox Extension
+# [LLM Markdown Copier Firefox Extension](https://addons.mozilla.org/en-US/firefox/addon/llm-markdown-copier/)
 
-**LLM Markdown Copier** is a secure and lightweight Firefox extension that lets you export chat sessions from large language model (LLM) web apps as clean, shareable Markdown, portable PDF documents or raw HTML document object model ([DOM](https://en.wikipedia.org/wiki/Document_Object_Model)). It currently supports OpenAI ChatGPT ([`chatgpt.com`](https://chatgpt.com)), Anthropic Claude ([`claude.ai`](https://claude.ai)) and Google Gemini ([`gemini.google.com`](https://gemini.google.com)). **The extension is intentionally simple: everything happens entirely in your browser and nothing is ever sent to any server.**
+[**LLM Markdown Copier**](https://addons.mozilla.org/en-US/firefox/addon/llm-markdown-copier/) is a secure and lightweight Firefox extension that lets you export chat sessions from large language model (LLM) web apps as clean, shareable Markdown, portable PDF documents or raw HTML document object model ([DOM](https://en.wikipedia.org/wiki/Document_Object_Model)). It currently supports OpenAI ChatGPT ([`chatgpt.com`](https://chatgpt.com)), Anthropic Claude ([`claude.ai`](https://claude.ai)) and Google Gemini ([`gemini.google.com`](https://gemini.google.com)). **The extension is intentionally simple: everything happens entirely in your browser and nothing is ever sent to any server.**
 
 ## Features
 
@@ -8,7 +8,6 @@
   <a href="./docs/images/extension_popup.png" target="_blank" rel="noopener noreferrer" style="display:inline-block;vertical-align:middle;">
     <img src="./docs/images/extension_popup.png" alt="Extension popup screenshot" width="240" style="vertical-align:middle;" />
   </a>
-  &nbsp;&nbsp;
   <a href="./docs/images/settings_page.png" target="_blank" rel="noopener noreferrer" style="display:inline-block;vertical-align:middle;">
     <img src="./docs/images/settings_page.png" alt="Settings page screenshot" width="240" style="vertical-align:middle;" />
   </a>
