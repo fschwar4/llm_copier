@@ -27,7 +27,7 @@
 
 - **Open source.** Open source license (AGPL-3.0) You can inspect the code or build it yourself from the [GitHub repository](https://github.com/fschwar4/llm_copier).
 
-> **🔒 100% client‑side.**  
+> **100% client‑side.**  
 > All data extraction and conversion happen in your browser — no requests to external servers, no telemetry, and no tracking.
 
 ### Supported Languages for Syntax Highlighting
@@ -49,6 +49,7 @@ PDF export includes syntax highlighting for the following languages:
 
 - [x] Fix: Code indentation in PDF output
 - [x] Restructure directory layout (images)
+- [ ] Add nice layout option for PDF Tables (currently raw markdown)
 - [ ] Add support for additional LLM web apps
 - [ ] Decision about Emoji and special character support
   - [ ] would increase file size significantly (as embedded fonts are needed)
