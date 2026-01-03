@@ -20,10 +20,13 @@
 
 - **High‑quality PDF downloads.** Generate a PDF from your conversation using `pdfmake`, a client-side PDF generation library. **No Canvas Approach!** Leading to high quality pdf generation even for long conversations. The PDF is directly build based on the extracted Markdown content.
 
-- **PDF Layout Customization.** You can customize the PDF output layout (font size, margin size, color scheme) in the extension settings page.
+- **PDF Layout Customization.** You can customize the PDF output layout (font size, margin size, color scheme) in the extension **Settings** page.
 
 - **Syntax Highlighting for code blocks.** The PDF export includes syntax highlighting for code snippets using [`highlight.js`](https://highlightjs.org/). See below for a full list of supported languages.
-- **Minimal permissions.** The extension uses the `activeTab` permission to execute scripts in the currently active tab only in response to a user action (clicking the extension button), the `clipboardWrite` permission to copy exported content to the clipboard, and the `storage` permission to save custom settings. It does not read from your clipboard or access unrelated browsing data. **Host permissions are restricted to the ChatGPT, Claude, and Gemini domains only.**
+
+- **Table Layout Support.** The PDF export includes neatly formatted tables. Table styles can be customised in Settings.
+
+- **Minimal permissions.** The extension uses the `activeTab` permission to execute scripts in the currently active tab only in response to a user action (clicking the extension button), the `clipboardWrite` permission to copy exported content to the clipboard, and the `storage` permission to save custom Settings. It does not read from your clipboard or access unrelated browsing data. **Host permissions are restricted to the ChatGPT, Claude, and Gemini domains only.**
 
 - **Open source.** Open source license (AGPL-3.0) You can inspect the code or build it yourself from the [GitHub repository](https://github.com/fschwar4/llm_copier).
 
@@ -50,6 +53,7 @@ PDF export includes syntax highlighting for the following languages:
 - [x] Fix: Code indentation in PDF output
 - [x] Restructure directory layout (images)
 - [x] Add nice layout option for PDF Tables (currently raw markdown)
+- [ ] Add developer documentation
 - [ ] Add support for additional LLM web apps
 - [ ] Decision about Emoji and special character support
   - [ ] would increase file size significantly (as embedded fonts are needed)
@@ -72,34 +76,29 @@ This project built upon the following projects:
 
 ## Structure of the Repository
 
-llm_copier/  
-├── README.md  
-├── LICENSE  
-├── .gitignore  
-│  
-├── src/                              # Extension source (this gets packaged)  
-│   ├── manifest.json  
-│   ├── popup.html  
-│   ├── popup.js  
-│   ├── settings.html  
-│   ├── settings.js  
-│   ├── extractors.js  
-│   ├── markdown2pdf.js  
-│   ├── utils.js  
-│   ├── icons/  
-│   │   ├── favicon.svg  
-│   │   ├── favicon-32.png  
-│   │   ├── favicon-64.png  
-│   │   └── favicon-128.png  
-│   └── lib/                          # Third-party libraries  
-│       ├── pdfmake.min.js  
-│       ├── vfs_fonts.js  
-│       └── highlight.min.js  
-│  
-├── docs/                             # Documentation and screenshots  
-│   ├── extension_popup.png  
-│   └── settings_page.png  
-│  
-└── dist/                             # Build output  
-    └── llm_copier.zip  
-
+.
+├── LICENSE
+├── README.md
+├── dist                       # Build output
+│   └── llm_copier.zip
+├── docs                       # Documentation and screenshots
+│   ├── extension_popup.png
+│   └── settings_page.png
+└── src                        # Extension source (this gets packaged)
+    ├── extractors.js
+    ├── icons
+    │   ├── favicon-128.png
+    │   ├── favicon-32.png
+    │   ├── favicon-64.png
+    │   └── favicon.svg
+    ├── lib                    # Third-party libraries
+    │   ├── highlight.min.js
+    │   ├── pdfmake.min.js
+    │   └── vfs_fonts.js
+    ├── manifest.json
+    ├── markdown2pdf.js
+    ├── popup.html
+    ├── popup.js
+    ├── settings.html
+    ├── settings.js
+    └── utils.js
