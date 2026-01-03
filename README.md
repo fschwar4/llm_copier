@@ -31,7 +31,7 @@
 - **Open source.** Open source license (AGPL-3.0) You can inspect the code or build it yourself from the [GitHub repository](https://github.com/fschwar4/llm_copier).
 
 > **100% client‑side.**  
-> All data extraction and conversion happen in your browser — no requests to external servers, no telemetry, and no tracking.
+> All data extraction and conversion happen in your browser – no requests to external servers, no telemetry, and no tracking.
 
 ### Supported Languages for Syntax Highlighting
 
