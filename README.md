@@ -56,6 +56,7 @@ PDF export includes syntax highlighting for the following languages:
 - [x] Restructure directory layout (images)
 - [x] Add nice layout option for PDF Tables (currently raw markdown)
 - [x] Add developer documentation
+- [ ] Add better formatting for file names if files are shared in chat!
 - [ ] Add support for additional LLM web apps
 - [ ] Decision about Emoji and special character support
   - [ ] would increase file size significantly (as embedded fonts are needed)
