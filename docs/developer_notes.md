@@ -80,7 +80,13 @@ web-ext lint --source-dir=src 2>&1 | tee docs/web-ext-lint.txt
   * [ ] Check if `README.md` requires updates
     * [ ] Features list
     * [ ] Roadmap section
-    * [ ] Repository tree structure (`tree . | pbcopy`)
+    * [ ] Repository tree structure — update the `<pre>` block in the "Structure of the Repository" section of `README.md`. Generate it with:
+
+```bash
+tree -I '.git|.claude|.DS_Store|node_modules' | pbcopy
+```
+
+  This copies a clean tree (excluding hidden/generated directories) to the clipboard, including the summary line (e.g. `10 directories, 28 files`). Paste it between the existing `<pre>...</pre>` tags in `README.md`.
   * [ ] Check if screenshots need updating based on UI changes.
 
 

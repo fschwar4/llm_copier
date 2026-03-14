@@ -81,33 +81,40 @@ This project built upon the following projects:
 
 <pre>
 .
+├── CHANGELOG.md
 ├── LICENSE
 ├── README.md
 ├── dist
-│   └── llm_copier.zip
+│   └── llm_copier-v0.2.11.zip
 ├── docs
 │   ├── developer_notes.md
 │   └── images
 │       ├── extension_popup.png
 │       └── settings_page.png
-└── src
-    ├── extractors.js
-    ├── icons
-    │   ├── favicon-128.png
-    │   ├── favicon-32.png
-    │   ├── favicon-64.png
-    │   └── favicon.svg
-    ├── lib
-    │   ├── highlight.min.js
-    │   ├── pdfmake.min.js
-    │   └── vfs_fonts.js
-    ├── manifest.json
-    ├── markdown2pdf.js
-    ├── popup.html
-    ├── popup.js
-    ├── settings.html
-    ├── settings.js
-    └── utils.js
+├── package.json
+├── scripts
+│   └── build.sh
+├── src
+│   ├── extractors.js
+│   ├── icons
+│   │   ├── favicon-128.png
+│   │   ├── favicon-32.png
+│   │   ├── favicon-64.png
+│   │   └── favicon.svg
+│   ├── lib
+│   │   ├── highlight.min.js
+│   │   ├── pdfmake.min.js
+│   │   └── vfs_fonts.js
+│   ├── manifest.json
+│   ├── markdown2pdf.js
+│   ├── popup.html
+│   ├── popup.js
+│   ├── settings.html
+│   ├── settings.js
+│   └── utils.js
+└── tests
+    ├── file-integrity.test.js
+    └── manifest.test.js
 
-7 directories, 21 files
+9 directories, 26 files
 </pre>
