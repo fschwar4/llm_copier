@@ -113,7 +113,7 @@ web-ext lint --source-dir=src 2>&1 | tee docs/web-ext-lint.txt
 
 **7. Submission Process**
 
-  * [ ] Upload the new `dist` ZIP file to the Developer Hub.
+  * [ ] Upload the new `dist` ZIP file to the [Developer Hub](https://addons.mozilla.org/en-US/developers/).
   * [ ] **Validation:** Accept warnings (currently 9 warnings expected — see known warnings in step 3).
   * [ ] Add the **Release Notes**.
     * [ ] Save the release notes locally for documentation.
@@ -123,9 +123,9 @@ web-ext lint --source-dir=src 2>&1 | tee docs/web-ext-lint.txt
 
   * [ ] **Add Reviewer Statement:** Paste the following standard explanation regarding library warnings:
 
-> "No warning applies to my own code.  
-> The warnings reported during the review are due to my use of the `pdfmake` package ([https://github.com/bpampuch/pdfmake](https://github.com/bpampuch/pdfmake)). Given that this is a long-standing and widely adopted library, I believe these warnings do not reflect any significant security risks.  
-> The same holds true for the `highlight.js` package."
+> "No warning applies to my own code.
+> The two manifest key warnings (`KEY_FIREFOX_UNSUPPORTED_BY_MIN_VERSION`, `KEY_FIREFOX_ANDROID_UNSUPPORTED_BY_MIN_VERSION`) are caused by the `data_collection_permissions` field, which was introduced in Firefox 140. The extension sets `strict_min_version` to `109.0` to maintain compatibility with Firefox ESR. Older Firefox versions simply ignore the unrecognised key — there is no functional impact.
+> The remaining warnings are due to my use of the `pdfmake` package ([https://github.com/bpampuch/pdfmake](https://github.com/bpampuch/pdfmake)) and the `highlight.js` package ([https://github.com/highlightjs/highlight.js](https://github.com/highlightjs/highlight.js)). Given that these are long-standing and widely adopted libraries, I believe these warnings do not reflect any significant security risks."
 
 
 **9. Store Listing Updates**

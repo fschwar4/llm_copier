@@ -39,19 +39,19 @@ describe('file integrity – popup and pages', () => {
       `popup file missing: src/${popup}`);
   });
 
-  it('popup.html references an existing JS entry point', () => {
-    const html = readFileSync(join(SRC, 'popup.html'), 'utf-8');
-    // Extract all script src attributes
-    const srcPattern = /src="([^"]+)"/g;
-    let match;
-    while ((match = srcPattern.exec(html)) !== null) {
-      const scriptPath = match[1];
-      it(`script src="${scriptPath}" exists`, () => {
-        assert.ok(existsSync(join(SRC, scriptPath)),
-          `referenced script missing: src/${scriptPath}`);
-      });
-    }
-  });
+  // Dynamically create one test per <script src="..."> found in popup.html.
+  // Tests are registered at the describe() level (not nested inside it())
+  // to avoid 'cancelledByParent' errors on Node 20.
+  const popupHtml = readFileSync(join(SRC, 'popup.html'), 'utf-8');
+  const srcPattern = /src="([^"]+)"/g;
+  let match;
+  while ((match = srcPattern.exec(popupHtml)) !== null) {
+    const scriptPath = match[1];
+    it(`popup.html script src="${scriptPath}" exists`, () => {
+      assert.ok(existsSync(join(SRC, scriptPath)),
+        `referenced script missing: src/${scriptPath}`);
+    });
+  }
 });
 
 describe('file integrity – JS module imports', () => {
