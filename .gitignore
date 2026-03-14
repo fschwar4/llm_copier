@@ -9,3 +9,5 @@
 # IDE settings 
 .vscode/
 .idea/
+
+.claude

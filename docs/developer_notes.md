@@ -4,7 +4,12 @@ Note: Personal checklist for releasing new versions of the LLM Markdown Copier F
 
 ## Phase 1: Local Development & Build
 
-**1. Functionality Testing (Temporary Extension mode)**
+**1. Update Version Number**
+
+  * [ ] Update the **version number** in `src/manifest.json`.
+
+
+**2. Functionality Testing (Temporary Extension mode)**
 
 Go to [`about:debugging#/runtime/this-firefox`](about:debugging#/runtime/this-firefox) to load the temporary extension.
 
@@ -28,9 +33,50 @@ Go to [`about:debugging#/runtime/this-firefox`](about:debugging#/runtime/this-fi
   * [ ] Perform a "Reset to Default" and verify the restoration.
 
 
-**2. Version Control & Documentation**
+**3. Run Tests**
 
-  * [ ] Update the **version number** in `manifest.json`.
+  * [ ] Run `npm test` and ensure all tests pass.
+
+  This runs the test suite defined in `tests/` using the Node.js built-in test runner (no dependencies required). The tests validate:
+
+  * **Manifest compatibility** (`tests/manifest.test.js`):
+    * Required fields, Manifest V3, valid version string.
+    * All required permissions and host permissions are declared.
+    * Firefox Gecko settings: extension ID, `strict_min_version` format.
+    * ESR compatibility guard: `strict_min_version` must be between `109` (MV3 baseline) and the current Firefox ESR version. This prevents the bug from [GitHub issue #1](https://github.com/fschwar4/llm_copier/issues/1).
+
+  * **File integrity** (`tests/file-integrity.test.js`):
+    * All icons referenced in `manifest.json` exist on disk.
+    * `popup.html` and all `<script src="...">` it references exist.
+    * All ES module imports in `popup.js` resolve to real files.
+    * Third-party libraries (`pdfmake`, `vfs_fonts`, `highlight.js`) exist in `src/lib/`.
+
+  > **Maintenance note:** When Mozilla ships a new ESR branch, update the `CURRENT_ESR_VERSION` constant at the top of `tests/manifest.test.js`.
+
+  * [ ] *(Optional)* Run Mozilla's `web-ext lint` locally to validate the manifest against Mozilla's official schema (same check that runs in CI):
+
+```bash
+# One-time install:
+npm install --global web-ext
+
+# Lint (and save output to file):
+web-ext lint --source-dir=src 2>&1 | tee docs/web-ext-lint.txt
+```
+
+  > This catches deprecated APIs, CSP issues, and manifest schema errors that AMO reviewers would flag. The same check runs automatically in GitHub Actions CI, so local runs are optional.
+
+  **Known warnings (9 total — all safe to ignore):**
+
+  | # | Code | Source | Why it's safe |
+  |---|------|--------|---------------|
+  | 1 | `KEY_FIREFOX_UNSUPPORTED_BY_MIN_VERSION` | `manifest.json` | `data_collection_permissions` was introduced in Firefox 140, but `strict_min_version` is `109`. Older Firefox versions simply ignore unknown manifest keys — no functional impact. |
+  | 2 | `KEY_FIREFOX_ANDROID_UNSUPPORTED_BY_MIN_VERSION` | `manifest.json` | Same field, but for Firefox for Android (introduced in 142). Also silently ignored on older versions. |
+  | 3 | `UNSAFE_VAR_ASSIGNMENT` (innerHTML) | `lib/highlight.min.js` | Third-party library. Core to how highlight.js applies syntax highlighting to DOM elements. |
+  | 4–9 | `DANGEROUS_EVAL` (×6) | `lib/highlight.min.js`, `lib/pdfmake.min.js` | Third-party libraries. Used internally for regex grammar engines (highlight.js) and virtual filesystem / font loading (pdfmake). |
+
+
+**4. Version Control & Documentation**
+
   * [ ] Check if `README.md` requires updates
     * [ ] Features list
     * [ ] Roadmap section
@@ -38,16 +84,22 @@ Go to [`about:debugging#/runtime/this-firefox`](about:debugging#/runtime/this-fi
   * [ ] Check if screenshots need updating based on UI changes.
 
 
-**3. Build Distribution**
+**5. Build Distribution**
 
-  * [ ] Create the new distribution ZIP file.
-  * [ ] **Clean Build Artifacts:** Remove OS-specific metadata (macOS) from the ZIP.
+  * [ ] Run the build script to create a clean, versioned ZIP in `dist/`:
 
 ```bash
-zip -d llm_copier.zip "__MACOSX/*" "*.DS_Store" "*/.DS_Store"
+./scripts/build.sh
 ```
 
-**4. Commit Changes**
+  This script automatically:
+  1. Reads the version from `src/manifest.json`.
+  2. Zips the contents of `src/` (excluding `.DS_Store` files).
+  3. Strips any remaining macOS metadata (`__MACOSX/`).
+  4. Outputs `dist/llm_copier-v<version>.zip` (e.g. `llm_copier-v0.1.3.zip`).
+
+
+**6. Commit Changes**
 
   * [ ] Commit changes to Git with a new **Version Tag**.
 
@@ -57,15 +109,17 @@ zip -d llm_copier.zip "__MACOSX/*" "*.DS_Store" "*/.DS_Store"
 
 ## Phase 2: Firefox Extension Management
 
-**5. Submission Process**
+> **CI note:** When you push to `main` or open a PR, GitHub Actions automatically runs both `npm test` and `web-ext lint` (see `.github/workflows/ci.yml`). Check that CI passes before submitting to AMO.
+
+**7. Submission Process**
 
   * [ ] Upload the new `dist` ZIP file to the Developer Hub.
-  * [ ] **Validation:** Accept warnings related to third-party libraries (currently 7 warnings expected).
+  * [ ] **Validation:** Accept warnings (currently 9 warnings expected — see known warnings in step 3).
   * [ ] Add the **Release Notes**.
     * [ ] Save the release notes locally for documentation.
 
 
-**6. Reviewer Context**
+**8. Reviewer Context**
 
   * [ ] **Add Reviewer Statement:** Paste the following standard explanation regarding library warnings:
 
@@ -74,7 +128,7 @@ zip -d llm_copier.zip "__MACOSX/*" "*.DS_Store" "*/.DS_Store"
 > The same holds true for the `highlight.js` package."
 
 
-**7. Store Listing Updates**
+**9. Store Listing Updates**
 
   * [ ] **Description:** If necessary, update the extension description.
   * [ ] **Visuals:** If necessary, upload new screenshots.
