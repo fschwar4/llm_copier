@@ -5,6 +5,13 @@ All notable changes to the LLM Markdown Copier Firefox extension will be documen
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 
+## [0.2.12] - 2026-05-17
+
+### Fixed
+
+- ChatGPT extraction returned empty output after `chatgpt.com` removed the `<article>` wrappers around conversation turns. Messages are now located via `[data-message-author-role]`, and user text is read from the new `[data-testid="collapsible-user-message-content"]` container.
+
+
 ## [0.2.11] - 2026-03-14
 
 ### Added

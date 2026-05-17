@@ -11,7 +11,7 @@ Note: Personal checklist for releasing new versions of the LLM Markdown Copier F
 
 **2. Functionality Testing (Temporary Extension mode)**
 
-Go to [`about:debugging#/runtime/this-firefox`](about:debugging#/runtime/this-firefox) to load the temporary extension.
+Go to [`about:debugging#/runtime/this-firefox`](about:debugging#/runtime/this-firefox) to load the temporary extension. See [build instructions under #5 below](#5-build-distribution) for how to generate the ZIP file.
 
 * **LLM Integration Check:** Verify that the extension works correctly with all supported models:
   
@@ -90,7 +90,7 @@ tree -I '.git|.claude|.DS_Store|node_modules' | pbcopy
   * [ ] Check if screenshots need updating based on UI changes.
 
 
-**5. Build Distribution**
+<a id="5-build-distribution"></a>**5. Build Distribution**
 
   * [ ] Run the build script to create a clean, versioned ZIP in `dist/`:
 

@@ -488,42 +488,57 @@ export function nodeToMarkdown(element, stripTags = ['button', 'img', 'svg']) {
 
 // --- CONTENT EXTRACTION FUNCTIONS (ChatGPT, Claude, Gemini) ---
 
-function getRole(article) {
-  const roleAttr = article.getAttribute('data-role') || article.getAttribute('role');
+function getRole(element) {
+  const authorRole = element.getAttribute('data-message-author-role');
+  if (authorRole) return authorRole;
+  const turn = element.getAttribute('data-turn');
+  if (turn) return turn;
+  const roleAttr = element.getAttribute('data-role') || element.getAttribute('role');
   if (roleAttr) return roleAttr;
-  if (article.querySelector('[data-message-author-role="user"]')) return "user";
-  if (article.querySelector('.markdown') || article.querySelector('[data-message-author-role="assistant"]')) return "assistant";
+  if (element.querySelector('[data-message-author-role="user"]')) return "user";
+  if (element.querySelector('.markdown') || element.querySelector('[data-message-author-role="assistant"]')) return "assistant";
   return "";
 }
 
-function extractUserText(article) {
-  const textDiv = article.querySelector('div[data-message-author-role="user"]') ||
-                  article.querySelector('.whitespace-pre-wrap');
+function extractUserText(element) {
+  const contentDiv = element.querySelector('[data-testid="collapsible-user-message-content"]');
+  if (contentDiv) {
+    const inner = contentDiv.querySelector('.whitespace-pre-wrap') || contentDiv;
+    return inner.textContent.trim();
+  }
+  const textDiv = element.querySelector('div[data-message-author-role="user"]') ||
+                  element.querySelector('.whitespace-pre-wrap');
   if (textDiv) return textDiv.textContent.trim();
-  return article.textContent.trim();
+  return element.textContent.trim();
 }
 
 export function parseChatGPT(document, modelName) {
   const outputMd = [];
-  const articles = document.querySelectorAll("article");
-  
-  for (const art of articles) {
-    const role = getRole(art);
-    
+  // ChatGPT now wraps each message in a <div data-message-author-role="...">
+  // (older versions used <article>). Query the role-bearing element directly,
+  // and fall back to <article> for backwards compatibility.
+  let messages = document.querySelectorAll('[data-message-author-role]');
+  if (messages.length === 0) {
+    messages = document.querySelectorAll('article');
+  }
+
+  for (const msg of messages) {
+    const role = getRole(msg);
+
     if (role === "user") {
-      let content = extractUserText(art);
+      let content = extractUserText(msg);
       const match = content.split(/(?<=[.!?])\s+/);
       let h1Title = match[0] || content;
       if (h1Title.length > 100) h1Title = h1Title.substring(0, 100) + "...";
       h1Title = h1Title.replace(/\n/g, ' ');
-      
+
       outputMd.push(`# ${h1Title}\n\n`);
       outputMd.push(`${content}\n`);
     }
     else if (role === "assistant") {
       outputMd.push(`## Answer (${modelName})\n`);
-      const markdownDiv = art.querySelector('div.markdown');
-      let content = markdownDiv ? nodeToMarkdown(markdownDiv) : art.textContent;
+      const markdownDiv = msg.querySelector('div.markdown');
+      let content = markdownDiv ? nodeToMarkdown(markdownDiv) : msg.textContent;
       outputMd.push(`${content}\n`);
       outputMd.push("\n---\n");
     }
