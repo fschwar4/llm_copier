@@ -34,6 +34,7 @@ const DEFAULT_SETTINGS = {
   
   // Code blocks
   codeBg: '#f8f8f8',
+  colorInlineCode: '#1039ef',
   syntaxHighlight: true,
   
   // Table of contents
@@ -668,7 +669,7 @@ export async function markdownToPdf(markdown, filename = 'chat-export.pdf') {
       h10: { fontSize: 10, bold: false, italics: true, color: '#c5cbcc', margin: [0, 3, 0, 3] },
       body: { fontSize: settings.fontBody, color: settings.colorBody, margin: [0, 0, 0, 6], lineHeight: 1.4 },
       code_block: { font: 'Courier', fontSize: settings.fontCode, color: '#333333', margin: [5, 5, 5, 5] },
-      inline_code: { font: 'Courier', fontSize: settings.fontCode, color: '#d63384', background: '#f8f9fa' },
+      inline_code: { font: 'Courier', fontSize: settings.fontCode, color: settings.colorInlineCode, background: '#f8f9fa' },
       quote: { fontSize: settings.fontBody, italics: true, color: '#555555', margin: [20, 5, 0, 10], background: '#fafafa' },
       link: { color: settings.colorLink, decoration: 'underline' }
     },

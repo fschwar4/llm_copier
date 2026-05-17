@@ -21,6 +21,7 @@ const DEFAULT_SETTINGS = {
 
   // Code blocks
   codeBg: '#f8f8f8',
+  colorInlineCode: '#1039ef',
   syntaxHighlight: true,
 
   // Table of contents
@@ -66,6 +67,7 @@ const SETTING_TYPES = {
   'color-body': 'color',
   'color-link': 'color',
   'code-bg': 'color',
+  'color-inline-code': 'color',
   'syntax-highlight': 'checkbox',
   'toc-enabled': 'checkbox',
   // Table styling controls
@@ -93,6 +95,7 @@ const ID_TO_KEY = {
   'color-body': 'colorBody',
   'color-link': 'colorLink',
   'code-bg': 'codeBg',
+  'color-inline-code': 'colorInlineCode',
   'syntax-highlight': 'syntaxHighlight',
   'toc-enabled': 'tocEnabled',
   // Table styling controls

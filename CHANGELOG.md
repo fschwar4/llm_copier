@@ -5,11 +5,19 @@ All notable changes to the LLM Markdown Copier Firefox extension will be documen
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 
-## [Unreleased]
+## [0.2.13] - 2026-05-17
+
+### Added
+
+- Configurable **Inline Code Color** in PDF Settings (default `#1039ef`, replacing the previous hardcoded `#d63384`).
 
 ### Changed
 
 - Extended PDF header support from h7 to h10. `nodeToMarkdown` now handles source `<h5>`/`<h6>` (previously dropped to plain text), and the Claude/Gemini shift regex was widened to `#{1,8}` so deep headers no longer cap at h8. Added `h8`–`h10` styles with progressively lighter italic grey.
+
+### Fixed
+
+- ChatGPT long-conversation exports no longer drop off-screen turns. ChatGPT virtualizes its conversation list, so turns not near the viewport are never rendered to the DOM. The extension now fetches the conversation directly from `chatgpt.com/backend-api/conversation/{id}` using the page's existing session token (the same approach used by mature exporters such as [pionxzh/chatgpt-exporter](https://github.com/pionxzh/chatgpt-exporter)). DOM-based extraction with a scroll-based pre-render is kept as a fallback when the API call is unavailable (e.g. a brand-new chat without a conversation ID).
 
 
 ## [0.2.12] - 2026-05-17

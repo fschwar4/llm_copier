@@ -4,8 +4,10 @@ import {
 
 import {
   getModelNameChatGPT,
+  getModelNameChatGPTFromApi,
   getUserNameChatGPT,
   parseChatGPT,
+  parseChatGPTFromApi,
   getModelNameClaude,
   getUserNameClaude,
   parseClaude,
@@ -18,6 +20,54 @@ import {
 import {
   markdownToPdf
 } from './markdown2pdf.js';
+
+
+/**
+ * Fetch the active ChatGPT conversation via the backend API.
+ * Runs inside the page context so cookies/CSRF are valid. Returns
+ * { ok: true, conversation } on success, or { error: '...' } on failure.
+ */
+async function fetchChatGPTConversationViaApi(tabId) {
+  try {
+    const [{ result }] = await browser.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        const match = location.pathname.match(/\/c\/([a-zA-Z0-9-]+)$/);
+        if (!match) return { error: 'no_conversation_id' };
+        const conversationId = match[1];
+
+        let accessToken;
+        try {
+          const sessionRes = await fetch('/api/auth/session', { credentials: 'same-origin' });
+          if (!sessionRes.ok) return { error: 'session_status_' + sessionRes.status };
+          const session = await sessionRes.json();
+          accessToken = session?.accessToken;
+        } catch (e) {
+          return { error: 'session_fetch_failed', message: String(e) };
+        }
+        if (!accessToken) return { error: 'no_access_token' };
+
+        try {
+          const convRes = await fetch('/backend-api/conversation/' + conversationId, {
+            credentials: 'same-origin',
+            headers: {
+              'Authorization': 'Bearer ' + accessToken,
+              'Accept': 'application/json'
+            }
+          });
+          if (!convRes.ok) return { error: 'conversation_status_' + convRes.status };
+          const conversation = await convRes.json();
+          return { ok: true, conversation };
+        } catch (e) {
+          return { error: 'conversation_fetch_failed', message: String(e) };
+        }
+      }
+    });
+    return result;
+  } catch (e) {
+    return { error: 'inject_failed', message: String(e) };
+  }
+}
 
 
 // Helper: Extract data based on type
@@ -49,8 +99,50 @@ async function extractDataByType(tabId, name) {
 // --- Main Extraction Logic ---
 async function extractMDData(tabId) {
   console.log('[LLM Copier] Extracting HTML to parse in Popup...');
-  
+
   try {
+    // 0. Determine URL first so we can apply platform-specific pre-rendering.
+    const [{ result: urlResult }] = await browser.scripting.executeScript({
+      target: { tabId },
+      func: () => window.location.href
+    });
+    const pageUrl = urlResult || '';
+
+    // ChatGPT virtualizes off-screen conversation turns, so the DOM never
+    // contains the full chat for long threads. Fetch the conversation JSON
+    // directly from ChatGPT's backend API — this is what mature exporters
+    // (e.g. pionxzh/chatgpt-exporter) do, and it sidesteps the DOM entirely.
+    // Falls back to scroll-based DOM rendering if the API call fails.
+    let chatgptApiConversation = null;
+    if (pageUrl.includes('chatgpt.com')) {
+      const apiRes = await fetchChatGPTConversationViaApi(tabId);
+      if (apiRes?.ok && apiRes.conversation?.mapping) {
+        chatgptApiConversation = apiRes.conversation;
+        console.log('[LLM Copier] ChatGPT backend API succeeded');
+      } else {
+        console.warn(
+          '[LLM Copier] ChatGPT API unavailable (' + (apiRes?.error || 'unknown') +
+          '); falling back to DOM extraction with scroll-based pre-render'
+        );
+        await browser.scripting.executeScript({
+          target: { tabId },
+          func: async () => {
+            const sel = '[data-testid^="conversation-turn-"]';
+            const isRendered = (t) => !!t.querySelector('[data-message-author-role]');
+            for (const turn of document.querySelectorAll(sel)) {
+              if (isRendered(turn)) continue;
+              turn.scrollIntoView({ block: 'center', behavior: 'instant' });
+              const deadline = Date.now() + 1500;
+              while (Date.now() < deadline) {
+                await new Promise((r) => setTimeout(r, 80));
+                if (isRendered(turn)) break;
+              }
+            }
+          }
+        });
+      }
+    }
+
     // 1. Get the raw data from the tab (HTML, URL, Title)
     // We only inject logic to retrieve data, not to process it.
     const [{ result }] = await browser.scripting.executeScript({
@@ -85,7 +177,12 @@ async function extractMDData(tabId) {
     // Improved Model Detection based on Domain
     if (url.includes('chatgpt.com')) {
       company = 'OpenAI';
-      modelName = getModelNameChatGPT(doc); // Pass the parsed doc
+      if (chatgptApiConversation) {
+        modelName = getModelNameChatGPTFromApi(chatgptApiConversation);
+        if (chatgptApiConversation.title) pageTitle = chatgptApiConversation.title;
+      } else {
+        modelName = getModelNameChatGPT(doc);
+      }
       userName = toTitleCase(getUserNameChatGPT(doc));
 
     } else if (url.includes('claude.ai')) {
@@ -133,7 +230,9 @@ execute:
     
     // Extract Content Based on Company
     if (company.includes('OpenAI')) {
-      md_content += parseChatGPT(doc, modelName);
+      md_content += chatgptApiConversation
+        ? parseChatGPTFromApi(chatgptApiConversation, modelName)
+        : parseChatGPT(doc, modelName);
     }
     else if (company.includes('Anthropic')) {
       md_content += parseClaude(doc, modelName);

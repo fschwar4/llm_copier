@@ -176,6 +176,39 @@ export function getModelNameChatGPT(input) {
   }
 }
 
+/**
+ * Extract model name from a ChatGPT backend-api conversation JSON.
+ * Uses the model_slug of the most recent assistant message.
+ */
+export function getModelNameChatGPTFromApi(conversation) {
+  try {
+    if (!conversation?.mapping) return "ChatGPT";
+    let slug = null;
+    // Prefer current_node → root walk so we get the model of the latest reply.
+    let nodeId = conversation.current_node;
+    const seen = new Set();
+    while (nodeId && conversation.mapping[nodeId] && !seen.has(nodeId)) {
+      seen.add(nodeId);
+      const msg = conversation.mapping[nodeId].message;
+      if (msg?.author?.role === "assistant" && msg.metadata?.model_slug) {
+        slug = msg.metadata.model_slug;
+        break;
+      }
+      nodeId = conversation.mapping[nodeId].parent;
+    }
+    if (!slug) return "ChatGPT";
+    return slug
+      .replace(/gpt-/i, 'GPT-')
+      .replace(/-/g, ' ')
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  } catch (error) {
+    console.error('Error extracting ChatGPT model name from API:', error);
+    return "ChatGPT";
+  }
+}
+
 export function getModelNameClaude(input) {
   try {
     let content;
@@ -510,6 +543,65 @@ function extractUserText(element) {
                   element.querySelector('.whitespace-pre-wrap');
   if (textDiv) return textDiv.textContent.trim();
   return element.textContent.trim();
+}
+
+/**
+ * Convert a ChatGPT backend-api conversation JSON into markdown.
+ * Walks `current_node` → root via `parent` to recover the visible message
+ * branch, then renders user/assistant turns. Bypasses DOM virtualization
+ * entirely, so long conversations export in full.
+ */
+export function parseChatGPTFromApi(conversation, modelName) {
+  if (!conversation?.mapping || !conversation?.current_node) return '';
+
+  // Walk from current_node back to root, then reverse to chronological order.
+  const path = [];
+  let nodeId = conversation.current_node;
+  const seen = new Set();
+  while (nodeId && conversation.mapping[nodeId] && !seen.has(nodeId)) {
+    seen.add(nodeId);
+    path.unshift(conversation.mapping[nodeId]);
+    nodeId = conversation.mapping[nodeId].parent;
+  }
+
+  const messageText = (msg) => {
+    if (!msg?.content) return '';
+    const { content_type, parts } = msg.content;
+    if (!Array.isArray(parts)) return '';
+    if (content_type === 'text' || content_type === 'multimodal_text') {
+      return parts.filter(p => typeof p === 'string').join('\n');
+    }
+    // Skip thoughts, tool outputs, code (handled inside text fences), etc.
+    return '';
+  };
+
+  const outputMd = [];
+  for (const node of path) {
+    const msg = node.message;
+    if (!msg) continue;
+    if (msg.metadata?.is_visually_hidden_from_conversation) continue;
+    const role = msg.author?.role;
+    if (role !== 'user' && role !== 'assistant') continue;
+
+    const text = messageText(msg).trim();
+    if (!text) continue;
+
+    if (role === 'user') {
+      const first = text.split(/(?<=[.!?])\s+/)[0] || text;
+      let h1Title = first.length > 100 ? first.substring(0, 100) + '...' : first;
+      h1Title = h1Title.replace(/\n/g, ' ');
+      outputMd.push(`# ${h1Title}\n\n`);
+      outputMd.push(`${text}\n`);
+    } else {
+      outputMd.push(`## Answer (${modelName})\n`);
+      // Match the +2 header shift applied by nodeToMarkdown so headings
+      // nest under the "Answer" subheader in the rendered PDF.
+      const shifted = text.replace(/^(#{1,6}) /gm, (_, hashes) => '#'.repeat(hashes.length + 2) + ' ');
+      outputMd.push(`${shifted}\n`);
+      outputMd.push("\n---\n");
+    }
+  }
+  return normalizeCodeBlocks(outputMd.join('\n'));
 }
 
 export function parseChatGPT(document, modelName) {
