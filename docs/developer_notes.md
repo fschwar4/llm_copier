@@ -130,7 +130,7 @@ tree -I '.git|.claude|.DS_Store|node_modules' | pbcopy
   * [ ] **Add Reviewer Statement:** Paste the following standard explanation regarding library warnings:
 
 > "No warning applies to my own code.
-> The two manifest key warnings (`KEY_FIREFOX_UNSUPPORTED_BY_MIN_VERSION`, `KEY_FIREFOX_ANDROID_UNSUPPORTED_BY_MIN_VERSION`) are caused by the `data_collection_permissions` field, which was introduced in Firefox 140. The extension sets `strict_min_version` to `109.0` to maintain compatibility with Firefox ESR. Older Firefox versions simply ignore the unrecognised key — there is no functional impact.
+> The two manifest key warnings (`KEY_FIREFOX_UNSUPPORTED_BY_MIN_VERSION`, `KEY_FIREFOX_ANDROID_UNSUPPORTED_BY_MIN_VERSION`) are caused by the `data_collection_permissions` field, which was introduced in Firefox 140. The extension sets `strict_min_version` to `109.0` to maintain compatibility with Firefox ESR. Older Firefox versions simply ignore the unrecognised key. There is no functional impact.
 > The remaining warnings are due to my use of the `pdfmake` package ([https://github.com/bpampuch/pdfmake](https://github.com/bpampuch/pdfmake)) and the `highlight.js` package ([https://github.com/highlightjs/highlight.js](https://github.com/highlightjs/highlight.js)). Given that these are long-standing and widely adopted libraries, I believe these warnings do not reflect any significant security risks."
 
 

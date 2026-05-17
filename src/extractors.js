@@ -464,8 +464,8 @@ export function nodeToMarkdown(element, stripTags = ['button', 'img', 'svg']) {
     .map(child => nodeToMarkdown(child, stripTags))
     .join("");
   
-  // Headers
-  if (['h1', 'h2', 'h3', 'h4'].includes(tagName)) {
+  // Headers (source h1–h6 → markdown h3–h8 after +2 shift)
+  if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagName)) {
     const level = parseInt(tagName[1]) + 2;
     return '#'.repeat(level) + ` ${content}\n\n`;
   }
@@ -562,7 +562,7 @@ export function parseClaude(document, modelName) {
     else {
       outputMd.push(`## ${modelName}\n`);
       const rawMd = nodeToMarkdown(msg);
-      const shiftedMd = rawMd.replace(/^(#{1,6}) /gm, '##$1 ');
+      const shiftedMd = rawMd.replace(/^(#{1,8}) /gm, '##$1 ');
       const cleanMd = shiftedMd.replace(/\n\s*\n/g, '\n\n');
       outputMd.push(`${cleanMd}\n`);
       outputMd.push("\n---\n");
@@ -610,7 +610,7 @@ export function parseGemini(document, modelName) {
           header.remove();
         }
         const rawMd = nodeToMarkdown(mdDiv);
-        const shifted = rawMd.replace(/^(#{1,6}) /gm, '##$1 ');
+        const shifted = rawMd.replace(/^(#{1,8}) /gm, '##$1 ');
         outputMd.push(`${shifted}\n`);
       } else {
         outputMd.push("_No text response found._\n");

@@ -342,7 +342,7 @@ function parseMarkdownToPdfContent(md, settings = DEFAULT_SETTINGS) {
   let collectingTable = false;
   let tableRows = [];
   // Regex helpers (allow leading whitespace)
-  const headerRegex = /^\s*(#{1,7})\s+(.*)/;
+  const headerRegex = /^\s*(#{1,10})\s+(.*)/;
   const ulRegex = /^\s*[-*]\s+(.*)/;
   const olRegex = /^\s*\d+\.\s+(.*)/;
   const quoteRegex = /^\s*>\s+(.*)/;
@@ -663,6 +663,9 @@ export async function markdownToPdf(markdown, filename = 'chat-export.pdf') {
       h5: { fontSize: 12, bold: true, italics: true, color: '#555555', margin: [0, 5, 0, 5] },
       h6: { fontSize: 11, bold: true, color: '#7f8c8d', margin: [0, 5, 0, 5] },
       h7: { fontSize: 10, bold: true, italics: true, color: '#95a5a6', margin: [0, 5, 0, 5] },
+      h8: { fontSize: 10, bold: false, italics: true, color: '#a5b3b5', margin: [0, 4, 0, 4] },
+      h9: { fontSize: 10, bold: false, italics: true, color: '#b5bec0', margin: [0, 3, 0, 3] },
+      h10: { fontSize: 10, bold: false, italics: true, color: '#c5cbcc', margin: [0, 3, 0, 3] },
       body: { fontSize: settings.fontBody, color: settings.colorBody, margin: [0, 0, 0, 6], lineHeight: 1.4 },
       code_block: { font: 'Courier', fontSize: settings.fontCode, color: '#333333', margin: [5, 5, 5, 5] },
       inline_code: { font: 'Courier', fontSize: settings.fontCode, color: '#d63384', background: '#f8f9fa' },
