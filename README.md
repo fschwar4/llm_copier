@@ -85,7 +85,7 @@ This project built upon the following projects:
 ├── LICENSE
 ├── README.md
 ├── dist
-│   └── llm_copier-v0.2.11.zip
+│   └── llm_copier-vX.Y.Z.zip
 ├── docs
 │   ├── developer_notes.md
 │   └── images

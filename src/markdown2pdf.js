@@ -259,7 +259,14 @@ function cleanText(text) {
  */
 function parseInline(text) {
   if (!text) return [];
-  const regex = /(\*\*.*?\*\*)|(`.*?`)|(\[.*?\]\(.*?\))/g;
+  // Order matters: the **bold** alternative MUST come before the *italic*
+  // alternative — regex alternation is tried left-to-right at each position,
+  // so putting bold first ensures **foo** is consumed whole instead of being
+  // split as *foo*.
+  // The italic group requires non-whitespace adjacency on both sides
+  // (lookahead/lookbehind), so unrelated asterisks like "2 * 3 = 6" or a
+  // dangling "* " bullet remnant aren't picked up.
+  const regex = /(\*\*.*?\*\*)|(\*(?=\S)[^*\n]+?(?<=\S)\*)|(`.*?`)|(\[.*?\]\(.*?\))/g;
   const parts = text.split(regex);
   const inlineContent = [];
   parts.forEach(part => {
@@ -268,14 +275,28 @@ function parseInline(text) {
     if (part.startsWith('**') && part.endsWith('**')) {
       inlineContent.push({ text: cleanText(part.slice(2, -2)), bold: true });
     }
-    // 2. Handle Inline Code
+    // 2. Handle Italic (single asterisks). Conditions mirror the italic
+    //    regex group above: a real italic token must start with "*<non-ws>"
+    //    and end with "<non-ws>*", and must not be a bold token leaking
+    //    through. Without these adjacency checks, an unmatched plain-text
+    //    span like "*  foo  *" would still satisfy the start/end-with-*
+    //    test and be falsely italicised.
+    else if (
+      part.length >= 3 &&
+      part.startsWith('*') && !part.startsWith('**') &&
+      part.endsWith('*') && !part.endsWith('**') &&
+      /^\*\S/.test(part) && /\S\*$/.test(part)
+    ) {
+      inlineContent.push({ text: cleanText(part.slice(1, -1)), italics: true });
+    }
+    // 3. Handle Inline Code
     else if (part.startsWith('`') && part.endsWith('`')) {
       inlineContent.push({
         text: cleanText(part.slice(1, -1)),
         style: 'inline_code'
       });
     }
-    // 3. Handle Links
+    // 4. Handle Links
     else if (part.startsWith('[') && part.includes('](') && part.endsWith(')')) {
       const linkMatch = part.match(/\[(.*?)\]\((.*?)\)/);
       if (linkMatch) {
@@ -288,7 +309,7 @@ function parseInline(text) {
         inlineContent.push(cleanText(part));
       }
     }
-    // 4. Regular Text
+    // 5. Regular Text
     else {
       inlineContent.push(cleanText(part));
     }

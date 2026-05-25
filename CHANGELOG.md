@@ -5,6 +5,13 @@ All notable changes to the LLM Markdown Copier Firefox extension will be documen
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 
+## [0.2.14] - 2026-05-25
+
+### Fixed
+
+- Italic markdown (`*text*` from `<em>` tags) now renders italic in PDF output instead of leaking literal asterisks. The PDF's inline parser previously only handled `**bold**`, backticks, and links, so single-asterisk italic — common in Claude responses — fell through as plain text. Italic detection uses non-whitespace adjacency to avoid false positives on prose like `2 * 3 = 6`.
+
+
 ## [0.2.13] - 2026-05-17
 
 ### Added
