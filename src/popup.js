@@ -187,6 +187,8 @@ async function extractMDData(tabId) {
 
     } else if (url.includes('claude.ai')) {
       company = 'Anthropic';
+      // document.title is "<chat name> - Claude"
+      pageTitle = pageTitle.replace(/\s+[-–]\s+Claude$/, '') || pageTitle;
       modelName = getModelNameClaude(doc);
       userName = toTitleCase(getUserNameClaude(doc));
 

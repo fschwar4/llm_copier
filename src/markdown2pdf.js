@@ -338,7 +338,7 @@ function extractMetadata(md) {
     if (titleMatch) metadata.title = titleMatch[1];
     if (authorMatch) metadata.author = authorMatch[1];
     if (dateMatch) metadata.date = dateMatch[1];
-    metadata.cleanMd = md.replace(yamlRegex, '').replace(/\newpage/g, '').trim();
+    metadata.cleanMd = md.replace(yamlRegex, '').replace(/\\newpage/g, '').trim();
   }
   return metadata;
 }

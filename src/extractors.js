@@ -222,7 +222,10 @@ export function getModelNameClaude(input) {
     if (input instanceof Element || input instanceof Document) {
       const dropdown = input.querySelector('[data-testid="model-selector-dropdown"]');
       if (dropdown) {
-        const text = dropdown.textContent.trim();
+        // The selector shows the model name in a .truncate span followed by
+        // a muted effort badge ("Opus 5.5" + "Extra"); keep only the name.
+        const nameEl = dropdown.querySelector('.truncate') || dropdown;
+        const text = nameEl.textContent.replace(/\s+/g, ' ').trim();
         if (text) {
           return `Claude ${text}`;
         }
@@ -638,22 +641,86 @@ export function parseChatGPT(document, modelName) {
   return normalizeCodeBlocks(outputMd.join("\n"));
 }
 
+/** Nearest non-empty text before `node` in document order, within `root`. */
+function textBefore(node, root) {
+  let n = node;
+  while (n && n !== root) {
+    if (n.previousSibling) {
+      n = n.previousSibling;
+      while (n.lastChild) n = n.lastChild;
+      if (n.nodeType === Node.TEXT_NODE && n.textContent) return n.textContent;
+    } else {
+      n = n.parentNode;
+    }
+  }
+  return '';
+}
+
+/**
+ * Return the markdown-bearing part of a Claude assistant message, stripped of
+ * UI chrome. Works on a clone so the parsed document is left untouched.
+ *
+ * Current claude.ai layout (Nov 2026):
+ *   [data-testid="assistant-message"]
+ *     h3.sr-only                      "Claude responded: ..." (screen reader)
+ *     [data-cds="TurnStatus"]         "Searched the web, ran 2 commands" / thinking
+ *     [data-cds="Prose"] .standard-markdown   ← the actual answer
+ *       a[class*="group/tag"]         citation chips ("kolarivision", "+2")
+ *       [data-find-omitted]           code block language label
+ *     [data-testid="message-actions"]
+ */
+function claudeAssistantContent(msg) {
+  const clone = msg.cloneNode(true);
+  clone.querySelectorAll(
+    '[data-find-omitted], .sr-only, [data-cds="TurnStatus"], [data-testid="message-actions"]'
+  ).forEach(el => el.remove());
+
+  // Citation chips render as "<label>+N" pills directly after the sentence.
+  // Turn them into plain " [label](url)" links.
+  clone.querySelectorAll('a[class*="group/tag"]').forEach(a => {
+    const label = a.textContent.replace(/\s*\+\d+\s*$/, '').replace(/[[\]]/g, '').trim();
+    a.textContent = label || a.getAttribute('href') || '';
+    if (!/\s$/.test(textBefore(a, clone))) a.before(' ');
+  });
+
+  // Prefer the prose blocks (an answer interleaved with tool calls has
+  // several); fall back to the whole cleaned message if the marker changes.
+  const prose = Array.from(clone.querySelectorAll('[data-cds="Prose"]'))
+    .filter(el => !el.parentElement?.closest('[data-cds="Prose"]'));
+  return prose.length ? prose : [clone];
+}
+
 export function parseClaude(document, modelName) {
   const outputMd = [];
-  const messages = document.querySelectorAll('div[data-testid="user-message"], div.font-claude-response');
-  
+  const isAssistant = (el) =>
+    el.getAttribute('data-testid') === 'assistant-message' ||
+    el.classList.contains('font-claude-response');
+
+  let messages = document.querySelectorAll(
+    '[data-testid="user-message"], [data-testid="assistant-message"]'
+  );
+  if (!document.querySelector('[data-testid="assistant-message"]')) {
+    // Pre-Nov-2026 layout wrapped answers in div.font-claude-response.
+    messages = document.querySelectorAll('div[data-testid="user-message"], div.font-claude-response');
+  }
+
   for (const msg of messages) {
-    if (msg.getAttribute('data-testid') === 'user-message') {
-      const content = msg.textContent.trim();
-      const match = content.split(/(?<=[.!?])\s+/);
-      let h1Title = match[0] || content;
+    if (!isAssistant(msg)) {
+      // User messages are one <p> per paragraph; textContent would glue them
+      // together without a separator.
+      const content = nodeToMarkdown(msg).replace(/\n\s*\n/g, '\n\n').trim();
+      const plain = (msg.querySelector('p') || msg).textContent.trim();
+      const match = plain.split(/(?<=[.!?])\s+/);
+      let h1Title = match[0] || plain;
       if (h1Title.length > 100) h1Title = h1Title.substring(0, 100) + "...";
       h1Title = h1Title.replace(/\n/g, ' ');
       outputMd.push(`# ${h1Title}\n\n${content}\n`);
     }
     else {
       outputMd.push(`## ${modelName}\n`);
-      const rawMd = nodeToMarkdown(msg);
+      const rawMd = claudeAssistantContent(msg)
+        .map(el => nodeToMarkdown(el))
+        .join('\n\n');
       const shiftedMd = rawMd.replace(/^(#{1,8}) /gm, '##$1 ');
       const cleanMd = shiftedMd.replace(/\n\s*\n/g, '\n\n');
       outputMd.push(`${cleanMd}\n`);
