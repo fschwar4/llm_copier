@@ -131,7 +131,7 @@ tree -I '.git|.claude|.DS_Store|node_modules' | pbcopy
   * [ ] Upload the new `dist` ZIP file to the [Developer Hub](https://addons.mozilla.org/en-US/developers/).
   * [ ] **Validation:** Accept warnings (currently 9 warnings expected — see known warnings in step 3).
   * [ ] Add the **Release Notes**.
-    * [ ] Save the release notes locally for documentation.
+    * [ ] Save the release notes locally for documentation: add them at the top of [`docs/release_notes.md`](release_notes.md).
 
 
 **8. Reviewer Context**

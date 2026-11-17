@@ -92,9 +92,10 @@ This project built upon the following projects:
 │   └── llm_copier-vX.Y.Z.zip
 ├── docs
 │   ├── developer_notes.md
-│   └── images
-│       ├── extension_popup.png
-│       └── settings_page.png
+│   ├── images
+│   │   ├── extension_popup.png
+│   │   └── settings_page.png
+│   └── release_notes.md
 ├── package.json
 ├── scripts
 │   └── build.sh
@@ -124,5 +125,5 @@ This project built upon the following projects:
     ├── manifest.test.js
     └── math.test.js
 
-8 directories, 32 files
+8 directories, 33 files
 </pre>
