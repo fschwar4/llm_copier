@@ -823,6 +823,25 @@ function claudeAssistantContent(msg) {
   return prose.length ? prose : [clone];
 }
 
+/**
+ * claude.ai virtualizes the transcript (Nov 2026): only rows near the
+ * viewport are rendered as [data-testid="transcript-row"][data-index]; the
+ * others are replaced by empty [data-testid="transcript-spacer"] divs.
+ * popup.js scrolls through the chat and collects the HTML of every row; this
+ * puts them back, in order, into the parsed copy of the page.
+ * Returns true if the rows were replaced.
+ */
+export function restoreClaudeTranscript(doc, rowHtmls) {
+  const container = doc.querySelector('[data-testid="transcript-row"]')?.parentElement;
+  if (!container || !rowHtmls?.length) return false;
+  container
+    .querySelectorAll(':scope > [data-testid="transcript-row"], :scope > [data-testid="transcript-spacer"]')
+    .forEach(el => el.remove());
+  const parsed = new DOMParser().parseFromString(`<body>${rowHtmls.join('')}</body>`, 'text/html');
+  container.append(...parsed.body.childNodes);
+  return true;
+}
+
 export function parseClaude(document, modelName) {
   const outputMd = [];
   const isAssistant = (el) =>
