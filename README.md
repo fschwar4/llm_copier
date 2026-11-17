@@ -26,6 +26,8 @@
 
 - **Table Layout Support.** The PDF export includes neatly formatted tables. Table styles can be customised in Settings.
 
+- **Math formulas.** LaTeX formulas in answers appear in the PDF as readable text with real superscripts and subscripts (e.g. W m⁻² nm⁻¹). The Markdown export keeps them as `$…$` / `$$…$$`, which Quarto renders.
+
 - **Minimal permissions.** The extension uses the `activeTab` permission to execute scripts in the currently active tab only in response to a user action (clicking the extension button), the `clipboardWrite` permission to copy exported content to the clipboard, and the `storage` permission to save custom Settings. It does not read from your clipboard or access unrelated browsing data. **Host permissions are restricted to the ChatGPT, Claude, and Gemini domains only.**
 
 - **Open source.** Open source license (AGPL-3.0) You can inspect the code or build it yourself from the [GitHub repository](https://github.com/fschwar4/llm_copier).
@@ -81,7 +83,9 @@ This project built upon the following projects:
 
 <pre>
 .
+├── AGENTS.md
 ├── CHANGELOG.md
+├── CLAUDE.md
 ├── LICENSE
 ├── README.md
 ├── dist
@@ -96,11 +100,13 @@ This project built upon the following projects:
 │   └── build.sh
 ├── src
 │   ├── extractors.js
+│   ├── glyphs.js
 │   ├── icons
 │   │   ├── favicon-128.png
 │   │   ├── favicon-32.png
 │   │   ├── favicon-64.png
 │   │   └── favicon.svg
+│   ├── latex2text.js
 │   ├── lib
 │   │   ├── highlight.min.js
 │   │   ├── pdfmake.min.js
@@ -114,7 +120,9 @@ This project built upon the following projects:
 │   └── utils.js
 └── tests
     ├── file-integrity.test.js
-    └── manifest.test.js
+    ├── glyphs.test.js
+    ├── manifest.test.js
+    └── math.test.js
 
-9 directories, 26 files
+8 directories, 32 files
 </pre>

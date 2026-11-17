@@ -5,6 +5,19 @@ All notable changes to the LLM Markdown Copier Firefox extension will be documen
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 
+## [0.2.15] - 2026-11-17
+
+### Added
+
+- Math formulas in PDF output. LaTeX math (`$…$`, `$$…$$`) is rendered as readable text with Unicode symbols, Greek letters, real superscripts/subscripts, `\frac` as `a/b` and TeX-like spacing (`src/latex2text.js`). ChatGPT's `\(…\)` / `\[…\]` delimiters are converted to `$…$` / `$$…$$`, so the Markdown export also renders in Quarto.
+
+### Fixed
+
+- Claude exports were missing the answers after the claude.ai DOM change. Answers are now read from `data-testid="assistant-message"`; citation chips become `[source](url)` links without the "+N" counter and without the icon-font glyph that printed as an empty box; the model name no longer includes the effort badge; the PDF title no longer ends in " - Claude".
+- ChatGPT exports showed progress notes ("Ich prüfe …") and tool calls as separate answers. They are skipped now, and each question gets a single "Answer" heading. Citation markers (`genui{"citation":…}`) become source links or are removed. Model names read "GPT-6 Pro" instead of "Gpt 6 Pro", and `&#x20;` entities in questions are decoded.
+- PDF: bold text, links and inline code inside table cells and inside bold/italic text rendered as literal `**`; they are now formatted. Characters the bundled Roboto font lacks (arrows, ⅓, ∝, ✓ …) are replaced with readable text instead of printing as empty boxes (`src/glyphs.js`). A stray `\newpage` marker is removed, and an escaped `\$` prints as `$`.
+
+
 ## [0.2.14] - 2026-05-25
 
 ### Fixed
