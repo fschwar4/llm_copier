@@ -863,6 +863,66 @@ export function parseClaude(document, modelName) {
   return normalizeCodeBlocks(outputMd.join("\n"));
 }
 
+/**
+ * First source URL of a Gemini citation chip. The page has no <a href> for
+ * sources; the chip's button carries them in its jslog attribute as
+ * "BardVeMetadataKey:<base64 JSON>". Only the first source of a chip
+ * ("MDPI + 1") is included there. Text fragments (#:~:text=…) are dropped.
+ */
+export function geminiChipUrl(chip) {
+  const el = chip.querySelector('[jslog*="BardVeMetadataKey:"]');
+  const b64 = el?.getAttribute('jslog').match(/BardVeMetadataKey:([A-Za-z0-9+/_-]+)/)?.[1];
+  if (!b64) return '';
+  let json;
+  try { json = atob(b64.replace(/-/g, '+').replace(/_/g, '/')); } catch { return ''; }
+  const url = json.match(/https?:\/\/[^\s"\\]+/)?.[0];
+  if (!url) return '';
+  return url.replace(/#?:~:.*$/, '').replace(/[()]/g, c => (c === '(' ? '%28' : '%29'));
+}
+
+/**
+ * Replace Gemini's inline source chips ("MDPI + 1" buttons at the end of a
+ * paragraph) with " [title](url)" links.
+ *
+ * Live DOM: p > sources-carousel-inline > source-inline-chip > div.source-inline-chip-container > button.
+ * After popup.js re-parses the page with DOMParser, the <div> closes the <p>,
+ * so the container ends up as the paragraph's next sibling and the
+ * carousel/chip elements stay behind empty.
+ */
+function geminiSourceLinks(root) {
+  const doc = root.ownerDocument;
+  const CHIP = 'source-inline-chip, .source-inline-chip-container';
+  root.querySelectorAll('sources-carousel-inline').forEach(el => {
+    if (!el.querySelector('source-inline-chip button, .source-inline-chip-container button')) el.remove();
+  });
+  const chips = Array.from(root.querySelectorAll(CHIP))
+    .filter((el, _, all) => !all.some(other => other !== el && other.contains(el)));
+  for (const chip of chips) {
+    const url = geminiChipUrl(chip);
+    if (url) {
+      const a = doc.createElement('a');
+      a.setAttribute('href', url);
+      let title = (chip.querySelector('.source-title')?.textContent || '').replace(/[[\]]/g, '').trim();
+      if (!title) {
+        try { title = new URL(url).hostname.replace(/^www\./, ''); } catch { title = url; }
+      }
+      a.textContent = title;
+      const prev = chip.previousElementSibling;
+      if (!chip.closest('p') && prev?.tagName.toLowerCase() === 'p') {
+        // Re-parsed page: put the link back at the end of its paragraph.
+        if (!/\s$/.test(prev.textContent)) prev.append(' ');
+        prev.append(a);
+      } else {
+        const host = chip.closest('sources-carousel-inline') || chip;
+        if (!/\s$/.test(textBefore(host, root))) host.before(' ');
+        host.before(a);
+      }
+    }
+    chip.remove();
+  }
+  root.querySelectorAll('sources-carousel-inline').forEach(el => el.remove());
+}
+
 export function parseGemini(document, modelName) {
   const outputMd = [];
   const conversations = document.querySelectorAll('.conversation-container');
@@ -900,6 +960,7 @@ export function parseGemini(document, modelName) {
           }
           header.remove();
         }
+        geminiSourceLinks(mdDiv);
         const rawMd = nodeToMarkdown(mdDiv);
         const shifted = rawMd.replace(/^(#{1,8}) /gm, '##$1 ');
         outputMd.push(`${shifted}\n`);
