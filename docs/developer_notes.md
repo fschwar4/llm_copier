@@ -55,6 +55,11 @@ Go to [`about:debugging#/runtime/this-firefox`](about:debugging#/runtime/this-fi
     * LaTeX formulas become readable PDF text (`src/latex2text.js`).
     * ChatGPT's `\(…\)` / `\[…\]` become `$…$` / `$$…$$` for Quarto; code stays untouched.
 
+  * **Font glyph coverage** (`tests/glyphs.test.js`):
+    * Reads the character map of the four bundled Roboto fonts from `src/lib/vfs_fonts.js`.
+    * Replacements in `src/glyphs.js` and the math output only use characters Roboto contains,
+      so nothing prints as an empty box in the PDF.
+
   > **Maintenance note:** When Mozilla ships a new ESR branch, update the `CURRENT_ESR_VERSION` constant at the top of `tests/manifest.test.js`.
 
   * [ ] *(Optional)* Run Mozilla's `web-ext lint` locally to validate the manifest against Mozilla's official schema (same check that runs in CI):

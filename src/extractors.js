@@ -751,14 +751,20 @@ function textBefore(node, root) {
  */
 function claudeAssistantContent(msg) {
   const clone = msg.cloneNode(true);
+  // [data-cds="Icon"] spans hold icon-font glyphs (private-use characters
+  // such as U+E015, the arrow on citation chips) that no PDF font contains.
   clone.querySelectorAll(
-    '[data-find-omitted], .sr-only, [data-cds="TurnStatus"], [data-testid="message-actions"]'
+    '[data-find-omitted], .sr-only, [data-cds="TurnStatus"], [data-testid="message-actions"], [data-cds="Icon"]'
   ).forEach(el => el.remove());
 
   // Citation chips render as "<label>+N" pills directly after the sentence.
   // Turn them into plain " [label](url)" links.
   clone.querySelectorAll('a[class*="group/tag"]').forEach(a => {
-    const label = a.textContent.replace(/\s*\+\d+\s*$/, '').replace(/[[\]]/g, '').trim();
+    const label = a.textContent
+      .replace(/[\p{Co}\p{Cf}]/gu, '') // any icon glyph or zero-width character left over
+      .replace(/\s*\+\d+\s*$/, '')
+      .replace(/[[\]]/g, '')
+      .trim();
     a.textContent = label || a.getAttribute('href') || '';
     if (!/\s$/.test(textBefore(a, clone))) a.before(' ');
   });

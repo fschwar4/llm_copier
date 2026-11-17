@@ -11,6 +11,8 @@
  * No DOM or pdfmake dependency, so it can be unit-tested in Node.
  */
 
+import { replaceMissingGlyphs } from './glyphs.js';
+
 const GREEK = {
   alpha: 'α', beta: 'β', gamma: 'γ', delta: 'δ', epsilon: 'ε', varepsilon: 'ε', zeta: 'ζ',
   eta: 'η', theta: 'θ', vartheta: 'θ', iota: 'ι', kappa: 'κ', lambda: 'λ', mu: 'μ', nu: 'ν',
@@ -406,7 +408,7 @@ function layoutAtoms(atoms) {
   trimEnd();
 
   return pieces.map(p => {
-    const out = { text: p.text };
+    const out = { text: replaceMissingGlyphs(p.text) }; // e.g. "→" typed directly in the formula
     if (p.italics) out.italics = true;
     if (p.bold) out.bold = true;
     if (p.script) out[p.script] = true;

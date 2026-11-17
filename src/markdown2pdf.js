@@ -2,6 +2,7 @@ import './lib/pdfmake.min.js';
 import './lib/vfs_fonts.js';
 import './lib/highlight.min.js';
 import { latexToPdfText } from './latex2text.js';
+import { replaceMissingGlyphs } from './glyphs.js';
 
 // Debug: Check if hljs loaded
 console.log('[PDF Generator] highlight.js loaded:', typeof hljs !== 'undefined');
@@ -245,13 +246,12 @@ function highlightCode(code, language) {
 
 /**
  * Helper: Sanitizes text for PDFMake.
- * Ensures undefined/null becomes empty string.
- * Currently preserves Unicode (Emojis, etc) but standardizes some arrows for safety.
+ * Ensures undefined/null becomes empty string and replaces characters the
+ * Roboto font lacks (arrows, ⅓, ✓, icon glyphs …), which would print as boxes.
  */
 function cleanText(text) {
   if (!text) return "";
-  // Ensure the input is a string to prevent errors
-  return String(text);
+  return replaceMissingGlyphs(text);
 }
 
 /**
@@ -513,12 +513,13 @@ function parseMarkdownToPdfContent(md, settings = DEFAULT_SETTINGS) {
       flushList();
       if (inCodeBlock) {
         // End of code block
-        const expandedCode = codeBlockContent.replace(/\n$/, '').split('\n').map((cLine) => {
+        let expandedCode = codeBlockContent.replace(/\n$/, '').split('\n').map((cLine) => {
           const match = cLine.match(/^(\s*)(.*)/);
           const leadingSpaces = match[1];
           const rest = match[2];
           return leadingSpaces.replace(/ /g, '  ') + rest;
         }).join('\n');
+        expandedCode = replaceMissingGlyphs(expandedCode);
         let codeContent;
         if (settings.syntaxHighlight) {
           codeContent = highlightCode(expandedCode, codeBlockLanguage);

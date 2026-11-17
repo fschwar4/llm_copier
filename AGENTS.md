@@ -27,13 +27,16 @@ and no npm dependencies.
 - `src/markdown2pdf.js`: Markdown → PDF via pdfmake.
 - `src/latex2text.js`: LaTeX math (`$…$`, `$$…$$`) → readable PDF text. Use only glyphs
   that exist in the bundled Roboto font (no arrows, no set symbols).
+- `src/glyphs.js`: replacements for characters Roboto lacks (arrows, ⅓, ✓, icon-font
+  glyphs …), which pdfmake would print as empty boxes. Applied to all PDF text.
 - `src/lib/`: vendored third-party libraries (pdfmake, highlight.js). Do not edit.
 - `dist/`: the built release zip, committed. Only the current version is kept.
 
 ## Testing
 
 - `npm test` uses the Node built-in test runner (nothing to install). It checks the manifest,
-  file integrity and the math conversion, not extraction from chat pages.
+  file integrity, the math conversion and that PDF text only uses glyphs Roboto contains,
+  not extraction from chat pages.
 - Check extraction changes against a saved copy of the affected chat page
   ("Save Page As… → Web Page, complete"), then load `src/` as a temporary add-on via
   `about:debugging#/runtime/this-firefox` and export for real.
