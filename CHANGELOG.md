@@ -5,6 +5,15 @@ All notable changes to the LLM Markdown Copier Firefox extension will be documen
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 
+## [Unreleased]
+
+### Fixed
+
+- Gemini: math formulas appeared three times in a row (MathML text with a detached "¨", the raw TeX and the rendered glyphs, e.g. "1125 s\frac{1}{125}\text{ s}1251 s"). Rendered formulas are now exported from their TeX source as `$…$` / `$$…$$` (Gemini `data-math`, otherwise the KaTeX `application/x-tex` annotation, which also covers KaTeX on other sites), so the PDF shows "1/125 s" and Quarto renders them.
+- Gemini: questions started with the hidden screen-reader label "You said" plus a shortened copy of the question; that label is skipped now. The title is the chat name Gemini shows in the tab ("<name> - Google Gemini"), falling back to the first question.
+- Table cells keep inline formatting (bold, links, code, math) in the Markdown export instead of plain text.
+
+
 ## [0.2.15] - 2026-11-17
 
 ### Added

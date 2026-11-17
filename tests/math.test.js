@@ -55,6 +55,16 @@ describe('LaTeX math → readable PDF text', () => {
       'umlauts in \\text',
       String.raw`\text{Gr\"o\ss e} = 1{.}5\,\text{m}`,
       'Größe = 1.5 m'
+    ],
+    [
+      'Gemini: fractions and \\text with a leading space',
+      String.raw`\frac{1}{125}\text{ s} \times 1000 = \frac{1000}{125} = 8\text{ Sekunden}`,
+      '1/125 s × 1000 = 1000/125 = 8 Sekunden'
+    ],
+    [
+      'Gemini: \\text in an exponent',
+      String.raw`\text{Neue Belichtungszeit} = \text{Ursprüngliche Zeit} \times 2^{\text{Anzahl der Blendenstufen}}`,
+      'Neue Belichtungszeit = Ursprüngliche Zeit × 2^Anzahl der Blendenstufen'
     ]
   ];
 

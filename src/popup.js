@@ -197,10 +197,16 @@ async function extractMDData(tabId) {
       modelName = getModelNameGemini(doc);
       userName = toTitleCase(getUserNameGemini(doc));
       
-      // Extract actual chat title for Gemini (document.title is generic)
-      const geminiChatTitle = getChatTitleGemini(doc);
-      if (geminiChatTitle) {
-        pageTitle = geminiChatTitle;
+      // document.title is "<chat name> - Google Gemini" once Gemini has named
+      // the chat, otherwise generic; then use the first question.
+      const named = pageTitle.match(/^(.+?)\s+[-–]\s+(?:Google\s+)?Gemini$/);
+      if (named) {
+        pageTitle = named[1];
+      } else {
+        const geminiChatTitle = getChatTitleGemini(doc);
+        if (geminiChatTitle) {
+          pageTitle = geminiChatTitle;
+        }
       }
     } else {
       console.warn('[LLM Copier] Unknown LLM platform for URL:', url);

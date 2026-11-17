@@ -272,6 +272,21 @@ export function getModelNameGemini(input) {
 }
 
 /**
+ * Text of a Gemini user query (`user-query` element or a part of it).
+ * Each line is a p.query-text-line. Gemini also adds a screen-reader heading
+ * ("You said" + a shortened copy of the prompt) that must not be exported.
+ */
+export function geminiQueryText(queryEl) {
+  const lines = queryEl.querySelectorAll('.query-text-line');
+  if (lines.length) {
+    return Array.from(lines, line => line.textContent.trim()).join('\n').trim();
+  }
+  const clone = (queryEl.querySelector('.query-text') || queryEl).cloneNode(true);
+  clone.querySelectorAll('.cdk-visually-hidden, .screen-reader-user-query-label').forEach(el => el.remove());
+  return clone.textContent.trim();
+}
+
+/**
  * Extract chat title from Gemini page.
  * Gemini uses the first user query as the chat title.
  * @param {Element|Document|string} input - DOM element or HTML string
@@ -296,8 +311,7 @@ export function getChatTitleGemini(input) {
       const firstTurn = conversations[0];
       const userQuery = firstTurn.querySelector('user-query, query-text, query-text-line');
       if (userQuery) {
-        const queryDiv = userQuery.querySelector('.query-text, .query-text-line');
-        const queryText = queryDiv ? queryDiv.textContent.trim() : userQuery.textContent.trim();
+        const queryText = geminiQueryText(userQuery);
         if (queryText) {
           // Truncate long titles and clean up
           let title = queryText.split(/(?<=[.!?])\s+/)[0] || queryText;
@@ -310,9 +324,9 @@ export function getChatTitleGemini(input) {
     }
     
     // Fallback: try to find any query text element
-    const queryText = doc.querySelector('.query-text, .query-text-line');
-    if (queryText) {
-      let title = queryText.textContent.trim();
+    const queryEl = doc.querySelector('user-query, .query-text, .query-text-line');
+    if (queryEl) {
+      let title = geminiQueryText(queryEl);
       if (title.length > 100) {
         title = title.substring(0, 100) + '...';
       }
@@ -371,6 +385,31 @@ export function normalizeCodeBlocks(markdownText) {
 
 
 /**
+ * TeX source of a rendered formula, or null if `element` is not one.
+ *
+ * KaTeX (used by Gemini, Claude and ChatGPT) renders every formula three
+ * times: as MathML, as a TeX annotation and as HTML glyphs, so textContent
+ * repeats it. Gemini keeps the TeX in `data-math` on .math-inline /
+ * .math-block; plain KaTeX keeps it in <annotation encoding="application/x-tex">.
+ */
+export function mathSource(element) {
+  const cls = element.classList;
+  let tex = null;
+  let display = false;
+  if (element.hasAttribute('data-math')) {
+    tex = element.getAttribute('data-math');
+    display = cls.contains('math-block') || !!element.querySelector('.katex-display');
+  } else if (cls.contains('katex-display') || cls.contains('katex')) {
+    tex = element.querySelector('annotation[encoding="application/x-tex"]')?.textContent ?? null;
+    display = cls.contains('katex-display');
+  }
+  if (tex === null) return null;
+  // A blank line would end a $$ block early; inline math stays on one line.
+  tex = display ? tex.replace(/\n\s*\n/g, '\n').trim() : tex.replace(/\s+/g, ' ').trim();
+  return tex ? { tex, display } : null;
+}
+
+/**
  * Recursive converter for HTML to Markdown with strict indentation support for lists.
  */
 export function nodeToMarkdown(element, stripTags = ['button', 'img', 'svg']) {
@@ -378,18 +417,24 @@ export function nodeToMarkdown(element, stripTags = ['button', 'img', 'svg']) {
   if (element.nodeType === Node.TEXT_NODE) {
     return element.textContent;
   }
-  
+
   // 2. Element Check
   if (element.nodeType !== Node.ELEMENT_NODE) {
     return "";
   }
-  
+
   const tagName = element.tagName.toLowerCase();
-  
+
   if (stripTags.includes(tagName)) {
     return "";
   }
-  
+
+  // 2b. Math formulas → $…$ / $$…$$ (Quarto syntax, also read by the PDF renderer)
+  const math = mathSource(element);
+  if (math) {
+    return math.display ? `\n\n$$${math.tex}$$\n\n` : `$${math.tex}$`;
+  }
+
   // 3. Handle Code Blocks
   if (tagName === 'pre') {
     const codeTag = element.querySelector("code");
@@ -419,12 +464,14 @@ export function nodeToMarkdown(element, stripTags = ['button', 'img', 'svg']) {
   
   // 4. Handle Tables
   if (tagName === 'table') {
+    // Cells keep inline formatting (bold, links, code, math) on one line.
+    const cellMd = (cell) => ` ${nodeToMarkdown(cell, stripTags).replace(/\s*\n\s*/g, ' ').trim()} `;
     const rows = [];
     const thead = element.querySelector('thead');
     if (thead) {
       const trs = thead.querySelectorAll('tr');
       for (const tr of trs) {
-        const cells = Array.from(tr.querySelectorAll('th, td')).map(cell => ` ${cell.textContent.trim()} `);
+        const cells = Array.from(tr.querySelectorAll('th, td')).map(cellMd);
         rows.push("|" + cells.join("|") + "|");
         rows.push("|" + Array(cells.length).fill("---").join("|") + "|");
       }
@@ -433,13 +480,13 @@ export function nodeToMarkdown(element, stripTags = ['button', 'img', 'svg']) {
     if (tbody) {
       const trs = tbody.querySelectorAll('tr');
       for (const tr of trs) {
-        const cells = Array.from(tr.querySelectorAll('td, th')).map(cell => ` ${cell.textContent.trim()} `);
+        const cells = Array.from(tr.querySelectorAll('td, th')).map(cellMd);
         rows.push("|" + cells.join("|") + "|");
       }
     } else if (!thead) {
       const trs = element.querySelectorAll('tr');
       for (const tr of trs) {
-        const cells = Array.from(tr.querySelectorAll('td, th')).map(cell => ` ${cell.textContent.trim()} `);
+        const cells = Array.from(tr.querySelectorAll('td, th')).map(cellMd);
         rows.push("|" + cells.join("|") + "|");
       }
     }
@@ -824,8 +871,7 @@ export function parseGemini(document, modelName) {
     const uComp = turn.querySelector('user-query, query-text, query-text-line');
     if (!uComp) continue;
     
-    const qDiv = uComp.querySelector('.query-text, .query-text-line');
-    const qText = qDiv ? qDiv.textContent.trim() : uComp.textContent.trim();
+    const qText = geminiQueryText(uComp);
     const match = qText.split(/(?<=[.!?])\s+/);
     let h1Title = match[0] || qText;
     if (h1Title.length > 100) h1Title = h1Title.substring(0, 100) + "...";
