@@ -51,6 +51,10 @@ Go to [`about:debugging#/runtime/this-firefox`](about:debugging#/runtime/this-fi
     * All ES module imports in `popup.js` resolve to real files.
     * Third-party libraries (`pdfmake`, `vfs_fonts`, `highlight.js`) exist in `src/lib/`.
 
+  * **Math conversion** (`tests/math.test.js`):
+    * LaTeX formulas become readable PDF text (`src/latex2text.js`).
+    * ChatGPT's `\(…\)` / `\[…\]` become `$…$` / `$$…$$` for Quarto; code stays untouched.
+
   > **Maintenance note:** When Mozilla ships a new ESR branch, update the `CURRENT_ESR_VERSION` constant at the top of `tests/manifest.test.js`.
 
   * [ ] *(Optional)* Run Mozilla's `web-ext lint` locally to validate the manifest against Mozilla's official schema (same check that runs in CI):

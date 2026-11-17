@@ -121,6 +121,19 @@ export function getUserNameGemini(input) {
 
 // --- HELPER FOR MODEL NAME EXTRACTIONS ---
 
+/**
+ * Turn a ChatGPT model slug into a display name:
+ * "gpt-6-pro" → "GPT-6 Pro", "gpt-4o-mini" → "GPT-4o Mini", "o3" → "O3".
+ */
+export function formatChatGPTModelSlug(slug) {
+  const words = String(slug).split('-').filter(Boolean);
+  const cap = (w) => w.charAt(0).toUpperCase() + w.slice(1);
+  if (words[0]?.toLowerCase() === 'gpt' && words.length > 1) {
+    return [`GPT-${words[1]}`, ...words.slice(2).map(cap)].join(' ');
+  }
+  return words.map(cap).join(' ');
+}
+
 export function getModelNameChatGPT(input) {
   try {
     let content;
@@ -144,14 +157,7 @@ export function getModelNameChatGPT(input) {
       const slugDiv = input.querySelector('[data-message-model-slug]');
       if (slugDiv) {
         const slug = slugDiv.getAttribute('data-message-model-slug');
-        if (slug) {
-          return slug
-            .replace(/gpt-/i, 'GPT-')
-            .replace(/-/g, ' ')
-            .split(' ')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-            .join(' ');
-        }
+        if (slug) return formatChatGPTModelSlug(slug);
       }
     } else {
       const ariaMatch = content.match(/aria-label="[^"]*Model selector, current model is ([^"]+)"/i);
@@ -159,15 +165,7 @@ export function getModelNameChatGPT(input) {
         return `GPT-${ariaMatch[1]}`;
       }
       const slugMatch = content.match(/data-message-model-slug="([^"]+)"/i);
-      if (slugMatch) {
-        const slug = slugMatch[1];
-        return slug
-          .replace(/gpt-/i, 'GPT-')
-          .replace(/-/g, ' ')
-          .split(' ')
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-          .join(' ');
-      }
+      if (slugMatch) return formatChatGPTModelSlug(slugMatch[1]);
     }
     return model;
   } catch (error) {
@@ -197,12 +195,7 @@ export function getModelNameChatGPTFromApi(conversation) {
       nodeId = conversation.mapping[nodeId].parent;
     }
     if (!slug) return "ChatGPT";
-    return slug
-      .replace(/gpt-/i, 'GPT-')
-      .replace(/-/g, ' ')
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
+    return formatChatGPTModelSlug(slug);
   } catch (error) {
     console.error('Error extracting ChatGPT model name from API:', error);
     return "ChatGPT";
@@ -548,6 +541,72 @@ function extractUserText(element) {
   return element.textContent.trim();
 }
 
+// ChatGPT marks citations inline with private-use characters, e.g.
+// "genui{"citation":{"ref":"turn12search0"}}" (older:
+// "citeturn0search3"). Includes leading spaces so a removed
+// marker leaves no gap before the punctuation.
+const CHATGPT_CITATION_MARKER = /[ \t]*[^]*/g;
+
+function escapeRegExp(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/** Markdown links for one metadata.content_references entry, or ''. */
+function chatgptReferenceLinks(ref) {
+  const items = Array.isArray(ref.items) && ref.items.length ? ref.items : [ref];
+  return items
+    .filter(item => typeof item?.url === 'string' && /^https?:\/\//.test(item.url))
+    .map(item => {
+      let label = item.attribution || item.title || '';
+      if (!label) {
+        try { label = new URL(item.url).hostname.replace(/^www\./, ''); } catch { label = item.url; }
+      }
+      return `[${String(label).replace(/[[\]]/g, '')}](${item.url})`;
+    })
+    .join(' ');
+}
+
+/**
+ * Replace citation markers with " [source](url)" links where the message
+ * metadata maps them to URLs; drop any marker that can't be resolved.
+ */
+function resolveChatGPTCitations(text, metadata) {
+  let out = text;
+  for (const ref of metadata?.content_references || []) {
+    const marker = ref?.matched_text;
+    if (typeof marker !== 'string' || !marker.trim() || !out.includes(marker)) continue;
+    const links = chatgptReferenceLinks(ref);
+    out = out.replace(new RegExp('[ \\t]*' + escapeRegExp(marker), 'g'), () => (links ? ` ${links}` : ''));
+  }
+  return out.replace(CHATGPT_CITATION_MARKER, '').replace(/[-]/g, '');
+}
+
+/** "&#x20;" / "&#32;" → " " (ChatGPT leaves these in user message text). */
+function decodeNumericEntities(text) {
+  const decode = (match, code, radix) => {
+    try { return String.fromCodePoint(parseInt(code, radix)); } catch { return match; }
+  };
+  return text
+    .replace(/&#x([0-9a-f]+);/gi, (m, hex) => decode(m, hex, 16))
+    .replace(/&#(\d+);/g, (m, dec) => decode(m, dec, 10));
+}
+
+/**
+ * ChatGPT writes math as \( … \) and \[ … \]; Quarto/Pandoc and the PDF
+ * renderer expect $ … $ and $$ … $$. Code fences and inline code are left
+ * untouched.
+ */
+export function normalizeMathDelimiters(text) {
+  return text
+    .split(/(```[\s\S]*?(?:```|$)|`[^`\n]*`)/)
+    .map((part, i) => (i % 2
+      ? part
+      : part
+        .replace(/\\\[([\s\S]+?)\\\]/g, (_, tex) => '$$' + tex + '$$')
+        .replace(/\\\(([\s\S]+?)\\\)/g, (_, tex) => '$' + tex.trim() + '$')))
+    .join('');
+}
+
 /**
  * Convert a ChatGPT backend-api conversation JSON into markdown.
  * Walks `current_node` → root via `parent` to recover the visible message
@@ -579,31 +638,52 @@ export function parseChatGPTFromApi(conversation, modelName) {
   };
 
   const outputMd = [];
+  // Consecutive assistant messages (e.g. text before and after a tool call)
+  // belong to one answer and share a single "Answer" heading.
+  let answerOpen = false;
+  const closeAnswer = () => {
+    if (answerOpen) outputMd.push("\n---\n");
+    answerOpen = false;
+  };
+
   for (const node of path) {
     const msg = node.message;
     if (!msg) continue;
     if (msg.metadata?.is_visually_hidden_from_conversation) continue;
     const role = msg.author?.role;
     if (role !== 'user' && role !== 'assistant') continue;
+    // Tool calls are addressed to a tool ("web.run", "python", …).
+    if (msg.recipient && msg.recipient !== 'all') continue;
+    // Progress notes ("Ich prüfe …") and reasoning are sent on the
+    // "commentary"/"analysis" channels; ChatGPT shows them in the activity
+    // panel, not as part of the answer.
+    const channel = msg.channel ?? msg.metadata?.channel;
+    if (role === 'assistant' && (channel === 'commentary' || channel === 'analysis')) continue;
 
-    const text = messageText(msg).trim();
+    let text = messageText(msg);
+    text = role === 'user'
+      ? decodeNumericEntities(text).replace(/[ \t]+$/gm, '')
+      : normalizeMathDelimiters(resolveChatGPTCitations(text, msg.metadata));
+    text = text.trim();
     if (!text) continue;
 
     if (role === 'user') {
+      closeAnswer();
       const first = text.split(/(?<=[.!?])\s+/)[0] || text;
       let h1Title = first.length > 100 ? first.substring(0, 100) + '...' : first;
       h1Title = h1Title.replace(/\n/g, ' ');
       outputMd.push(`# ${h1Title}\n\n`);
       outputMd.push(`${text}\n`);
     } else {
-      outputMd.push(`## Answer (${modelName})\n`);
+      if (!answerOpen) outputMd.push(`## Answer (${modelName})\n`);
+      answerOpen = true;
       // Match the +2 header shift applied by nodeToMarkdown so headings
       // nest under the "Answer" subheader in the rendered PDF.
       const shifted = text.replace(/^(#{1,6}) /gm, (_, hashes) => '#'.repeat(hashes.length + 2) + ' ');
       outputMd.push(`${shifted}\n`);
-      outputMd.push("\n---\n");
     }
   }
+  closeAnswer();
   return normalizeCodeBlocks(outputMd.join('\n'));
 }
 

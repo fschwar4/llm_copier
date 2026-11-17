@@ -25,13 +25,15 @@ and no npm dependencies.
 - `src/popup.js`: popup logic. Injects scripts into the active tab, collects the page HTML
   (or the ChatGPT backend API response) and runs the extractors.
 - `src/markdown2pdf.js`: Markdown → PDF via pdfmake.
+- `src/latex2text.js`: LaTeX math (`$…$`, `$$…$$`) → readable PDF text. Use only glyphs
+  that exist in the bundled Roboto font (no arrows, no set symbols).
 - `src/lib/`: vendored third-party libraries (pdfmake, highlight.js). Do not edit.
 - `dist/`: the built release zip, committed. Only the current version is kept.
 
 ## Testing
 
-- `npm test` uses the Node built-in test runner (nothing to install). It checks the manifest
-  and file integrity only, not extraction.
+- `npm test` uses the Node built-in test runner (nothing to install). It checks the manifest,
+  file integrity and the math conversion, not extraction from chat pages.
 - Check extraction changes against a saved copy of the affected chat page
   ("Save Page As… → Web Page, complete"), then load `src/` as a temporary add-on via
   `about:debugging#/runtime/this-firefox` and export for real.

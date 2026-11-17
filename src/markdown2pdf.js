@@ -1,6 +1,7 @@
 import './lib/pdfmake.min.js';
 import './lib/vfs_fonts.js';
 import './lib/highlight.min.js';
+import { latexToPdfText } from './latex2text.js';
 
 // Debug: Check if hljs loaded
 console.log('[PDF Generator] highlight.js loaded:', typeof hljs !== 'undefined');
@@ -254,8 +255,25 @@ function cleanText(text) {
 }
 
 /**
- * Helper: Parses a single text string into an array of pdfmake objects 
- * to handle **Bold**, `Inline Code`, and [Links](url).
+ * Apply bold/italics to every part of a parsed inline array. pdfmake does not
+ * pass styles down into nested text arrays, so nesting stays flat.
+ */
+function withInlineStyle(parts, style) {
+  return parts.map(p => (typeof p === 'string' ? { text: p, ...style } : { ...p, ...style }));
+}
+
+/**
+ * Inline math: $$…$$ on one line, or $…$ by Pandoc's rules — the opening $
+ * is not escaped and is followed by a non-space, the closing $ follows a
+ * non-space and is not followed by a digit. So prices like "$5 to $10" and
+ * "$100k/$200k" stay plain text.
+ */
+const INLINE_MATH = String.raw`\$\$[^$\n]+?\$\$|(?<![\\$])\$(?=[^\s$])(?:[^$\\\n]|\\.)+?(?<=[^\s\\])\$(?!\d)`;
+const INLINE_MATH_EXACT = new RegExp(`^(?:${INLINE_MATH})$`);
+
+/**
+ * Helper: Parses a single text string into an array of pdfmake objects
+ * to handle **Bold**, `Inline Code`, [Links](url) and $math$.
  */
 function parseInline(text) {
   if (!text) return [];
@@ -266,14 +284,18 @@ function parseInline(text) {
   // The italic group requires non-whitespace adjacency on both sides
   // (lookahead/lookbehind), so unrelated asterisks like "2 * 3 = 6" or a
   // dangling "* " bullet remnant aren't picked up.
-  const regex = /(\*\*.*?\*\*)|(\*(?=\S)[^*\n]+?(?<=\S)\*)|(`.*?`)|(\[.*?\]\(.*?\))/g;
+  const regex = new RegExp(
+    String.raw`(\*\*.*?\*\*)|(\*(?=\S)[^*\n]+?(?<=\S)\*)|(` + '`.*?`' + String.raw`)|(\[.*?\]\(.*?\))|(${INLINE_MATH})`,
+    'g'
+  );
   const parts = text.split(regex);
   const inlineContent = [];
   parts.forEach(part => {
     if (!part) return;
-    // 1. Handle Bold
-    if (part.startsWith('**') && part.endsWith('**')) {
-      inlineContent.push({ text: cleanText(part.slice(2, -2)), bold: true });
+    // 1. Handle Bold. The inner text is parsed again so links, code and
+    //    italics inside bold ("**[name](url)**") render instead of leaking.
+    if (part.length > 4 && part.startsWith('**') && part.endsWith('**')) {
+      inlineContent.push(...withInlineStyle(parseInline(part.slice(2, -2)), { bold: true }));
     }
     // 2. Handle Italic (single asterisks). Conditions mirror the italic
     //    regex group above: a real italic token must start with "*<non-ws>"
@@ -287,16 +309,21 @@ function parseInline(text) {
       part.endsWith('*') && !part.endsWith('**') &&
       /^\*\S/.test(part) && /\S\*$/.test(part)
     ) {
-      inlineContent.push({ text: cleanText(part.slice(1, -1)), italics: true });
+      inlineContent.push(...withInlineStyle(parseInline(part.slice(1, -1)), { italics: true }));
     }
-    // 3. Handle Inline Code
+    // 3. Handle inline math ($…$ or $$…$$)
+    else if (INLINE_MATH_EXACT.test(part)) {
+      const tex = part.startsWith('$$') ? part.slice(2, -2) : part.slice(1, -1);
+      inlineContent.push(...latexToPdfText(tex));
+    }
+    // 4. Handle Inline Code
     else if (part.startsWith('`') && part.endsWith('`')) {
       inlineContent.push({
         text: cleanText(part.slice(1, -1)),
         style: 'inline_code'
       });
     }
-    // 4. Handle Links
+    // 5. Handle Links
     else if (part.startsWith('[') && part.includes('](') && part.endsWith(')')) {
       const linkMatch = part.match(/\[(.*?)\]\((.*?)\)/);
       if (linkMatch) {
@@ -309,9 +336,9 @@ function parseInline(text) {
         inlineContent.push(cleanText(part));
       }
     }
-    // 5. Regular Text
+    // 6. Regular Text ("\$" is an escaped, literal dollar sign)
     else {
-      inlineContent.push(cleanText(part));
+      inlineContent.push(cleanText(part).replace(/\\\$/g, '$'));
     }
   });
   return inlineContent;
@@ -395,6 +422,32 @@ function parseMarkdownToPdfContent(md, settings = DEFAULT_SETTINGS) {
       return /^:?-{3,}:?$/.test(c);
     });
   }
+  // Table cells get the same inline formatting as paragraphs (bold, links,
+  // code); an empty cell stays an empty string.
+  const tableCellText = (cell) => {
+    const inline = parseInline(cell);
+    return inline.length ? inline : '';
+  };
+  // Display math: "$$" starts a block that ends at the next "$$", on the same
+  // line or a later one. As in Pandoc, a blank line before the closing "$$"
+  // means it is not math, so a stray "$$" stays plain text (returns null).
+  const readDisplayMath = (start) => {
+    const parts = [];
+    let rest = lines[start].trim().slice(2);
+    for (let j = start; j < lines.length; j++) {
+      if (j > start) {
+        rest = lines[j].trim();
+        if (!rest) return null;
+      }
+      const close = rest.indexOf('$$');
+      if (close !== -1) {
+        parts.push(rest.slice(0, close));
+        return { tex: parts.join('\n').trim(), after: rest.slice(close + 2).trim(), end: j };
+      }
+      parts.push(rest);
+    }
+    return null;
+  };
   const flushList = () => {
     if (inList && currentList.length > 0) {
       if (listType === 'ul') {
@@ -506,6 +559,27 @@ function parseMarkdownToPdfContent(md, settings = DEFAULT_SETTINGS) {
       codeBlockContent += line + '\n';
       continue;
     }
+    // Display math, rendered as a centred line of readable text
+    if (trimmed.startsWith('$$')) {
+      const block = readDisplayMath(i);
+      if (block) {
+        flushTable();
+        flushList();
+        const mathText = latexToPdfText(block.tex);
+        // Trailing punctuation ("$$ … $$.") stays on the formula line;
+        // other trailing text becomes its own paragraph.
+        const trailingPunct = /^[.,;:!?)]/.test(block.after);
+        if (trailingPunct) mathText.push(block.after);
+        if (mathText.length) {
+          content.push({ text: mathText, style: 'body', alignment: 'center', margin: [0, 2, 0, 8] });
+        }
+        if (block.after && !trailingPunct) {
+          content.push({ text: parseInline(block.after), style: 'body' });
+        }
+        i = block.end;
+        continue;
+      }
+    }
     // Table detection logic
     // If we're not currently collecting a table, check if the current line is a header row
     // and the next line is a delimiter line. A valid header row must contain at least
@@ -522,7 +596,7 @@ function parseMarkdownToPdfContent(md, settings = DEFAULT_SETTINGS) {
         if (header.startsWith('|')) header = header.slice(1);
         if (header.endsWith('|')) header = header.slice(0, -1);
         const headerCells = header.split('|').map(cell => cell.trim());
-        tableRows.push(headerCells.map(cell => ({ text: cleanText(cell), bold: true })));
+        tableRows.push(headerCells.map(cell => ({ text: tableCellText(cell), bold: true })));
         // Skip the delimiter line by incrementing i
         i++;
         continue;
@@ -536,7 +610,7 @@ function parseMarkdownToPdfContent(md, settings = DEFAULT_SETTINGS) {
         let rowLine = trimmed;
         if (rowLine.startsWith('|')) rowLine = rowLine.slice(1);
         if (rowLine.endsWith('|')) rowLine = rowLine.slice(0, -1);
-        const cells = rowLine.split('|').map(cell => ({ text: cleanText(cell.trim()) }));
+        const cells = rowLine.split('|').map(cell => ({ text: tableCellText(cell.trim()) }));
         tableRows.push(cells);
         continue;
       } else {
