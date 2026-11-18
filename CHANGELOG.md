@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Gemini: source chips ("MDPI + 1") were dropped, so answers had no sources. They become `[title](url)` links at the end of their paragraph. The page has no links for them; the URL is read from the chip's `jslog` metadata (base64 JSON), which only holds the first source of a chip. The chip markup is a `<div>` inside a `<p>`, which `DOMParser` moves out of the paragraph; both layouts are handled.
 - Gemini: questions started with the hidden screen-reader label "You said" plus a shortened copy of the question; that label is skipped now. The title is the chat name Gemini shows in the tab ("<name> - Google Gemini"), falling back to the first question.
 - Table cells keep inline formatting (bold, links, code, math) in the Markdown export instead of plain text.
+- PDF: math in headings ("Über Blendenstufen ($n$)") printed as raw `$n$`; it is converted to readable text now, as in body text.
 
 
 ## [0.2.15] - 2026-11-17

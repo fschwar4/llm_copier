@@ -1,7 +1,7 @@
 import './lib/pdfmake.min.js';
 import './lib/vfs_fonts.js';
 import './lib/highlight.min.js';
-import { latexToPdfText } from './latex2text.js';
+import { latexToPdfText, latexToPlainText } from './latex2text.js';
 import { replaceMissingGlyphs } from './glyphs.js';
 
 // Debug: Check if hljs loaded
@@ -657,8 +657,14 @@ function parseMarkdownToPdfContent(md, settings = DEFAULT_SETTINGS) {
       if (level === 1) styleName = 'header';
       else if (level === 2) styleName = 'subheader';
       else styleName = `h${level}`;
+      // Headers are plain text (also used for the table of contents), so
+      // math becomes readable text here, e.g. "($n$)" → "(n)".
+      const plain = text
+        .replace(new RegExp(INLINE_MATH, 'g'), m =>
+          latexToPlainText(m.startsWith('$$') ? m.slice(2, -2) : m.slice(1, -1)))
+        .replace(/\\\$/g, '$');
       const headerObj = {
-        text: cleanText(text),
+        text: cleanText(plain),
         style: styleName,
         tocItem: level === 1
       };
